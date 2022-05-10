@@ -6,14 +6,14 @@ import numpy as np
 import astropy.units as u
 import logging as log
 from contextlib import redirect_stdout
-from .vm_config import VectorialModelConfig
+from .vmconfig import VectorialModelConfig
 
 """
     For interfacing with the fortran version of the vectorial model, written by Festou, early 1980s
 """
 
 
-def _produce_fortran_fparam(vmc: VectorialModelConfig):
+def _produce_fortran_fparam(vmc: VectorialModelConfig) -> None:
 
     """
         Takes a valid python config and produces a valid fortran input file
@@ -49,43 +49,7 @@ def _produce_fortran_fparam(vmc: VectorialModelConfig):
             print("  100.000000       100.00000")
 
 
-# def produce_fortran_fparam_old(input_yaml):
-
-#     """
-#         Takes a valid python version input dictionary and produces a valid fortran input file
-#         as long as the production is steady
-#     """
-
-#     # TODO: binned time production should also be handled here
-#     # TODO: parent and fragment destruction levels should also be handled here
-#     fparam_outfile = input_yaml['fortran_version']['in_file']
-
-#     with open(fparam_outfile, 'w') as out_file:
-#         with redirect_stdout(out_file):
-#             print(f"{input_yaml['misc']['comet_name']}")
-#             print(f"{input_yaml['position']['d_heliocentric'].to(u.AU).value}  {input_yaml['misc']['delta']}")
-#             # length of production array: only base production rate for 60 days
-#             print("1")
-#             print(f"{input_yaml['production']['base_q'].to(1/u.s).value}  60.0")
-#             # fill in dummy values for the rest of the array
-#             for _ in range(19):
-#                 print("0.0 61")
-#             # parent info - speed, total & photo lifetime, destruction level
-#             print(f"{input_yaml['parent']['v_outflow'].to(u.km/u.s).value}")
-#             print(f"{input_yaml['parent']['tau_T'].to(u.s).value}")
-#             print(f"{input_yaml['parent']['tau_d'].to(u.s).value}")
-#             print("99.0")
-#             # fragment info - gfactor, speed, total lifetime, destruction level
-#             print(f"{input_yaml['fragment']['name']}")
-#             print(f"{input_yaml['misc']['gfactor']}")
-#             print(f"{input_yaml['fragment']['v_photo'].to(u.km/u.s).value}")
-#             print(f"{input_yaml['fragment']['tau_T'].to(u.s).value}")
-#             print("95.0")
-#             # Custom aperture size, unused for our purposes so these are dummy values
-#             print("  100.000000       100.00000")
-
-
-def run_fortran_vmodel(vmc: VectorialModelConfig):
+def run_fortran_vmodel(vmc: VectorialModelConfig) -> None:
 
     """
         Given path to fortran binary, runs it by sending it the correct keystrokes

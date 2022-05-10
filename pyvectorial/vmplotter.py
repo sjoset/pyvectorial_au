@@ -31,6 +31,11 @@ mybblack = "#82787f"
 mywhite = "#d8d7dc"
 mybwhite = "#e7e7ea"
 
+# TODO: make the plotters take an axis to draw on to separate styling the graphs
+# and plotting the data
+# use fig = plt.figure() and ax = fig.subplot, ax.plot()
+# or TODO: make a stylesheet and load that in plt.style.use and do no styling in here at all
+
 
 def find_cdens_inflection_points(vmodel):
     """

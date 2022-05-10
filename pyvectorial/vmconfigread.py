@@ -5,67 +5,18 @@ import yaml
 import logging as log
 import astropy.units as u
 import numpy as np
-from dataclasses import dataclass, asdict
+
+from .vmconfig import VectorialModelConfig, Production, Parent, Fragment, Comet, Grid
 
 
-@dataclass
-class Production:
-    base_q: float
-    time_variation_type: str
-    params: dict
-
-
-@dataclass
-class Parent:
-    name: str
-    v_outflow: float
-    tau_d: float
-    tau_T: float
-    sigma: float
-    T_to_d_ratio: float
-
-
-@dataclass
-class Fragment:
-    name: str
-    v_photo: float
-    tau_T: float
-
-
-@dataclass
-class Comet:
-    name: str
-    rh: float
-    delta: float
-    transform_method: str
-    transform_applied: bool = False
-
-
-@dataclass
-class Grid:
-    radial_points: int
-    angular_points: int
-    radial_substeps: int
-
-
-@dataclass
-class VectorialModelConfig:
-    production: Production
-    parent: Parent
-    fragment: Fragment
-    comet: Comet
-    grid: Grid
-    etc: dict
-
-
-def vm_config_from_yaml(filepath: str) -> VectorialModelConfig:
+def vm_config_from_yaml(filepath: str, init_ratio: bool = True) -> VectorialModelConfig:
 
     input_yaml = _read_yaml_from_file(filepath)
 
     production = _production_from_yaml(input_yaml)
     del input_yaml['production']
 
-    parent = _parent_from_yaml(input_yaml)
+    parent = _parent_from_yaml(input_yaml, init_ratio)
     del input_yaml['parent']
 
     fragment = _fragment_from_yaml(input_yaml)
@@ -95,7 +46,7 @@ def vm_config_from_yaml(filepath: str) -> VectorialModelConfig:
     return vmc, vmc_orig
 
 
-def _production_from_yaml(input_yaml: dict):
+def _production_from_yaml(input_yaml: dict) -> Production:
 
     # Read the production config from input_yaml and apply units
 
@@ -103,6 +54,7 @@ def _production_from_yaml(input_yaml: dict):
     p = input_yaml['production']
     base_q = p.pop('base_q', 0.0) * (1/u.s)
 
+    # TODO: rewrite without all the repitition
     t_var_type = p.pop('time_variation_type', None)
     if t_var_type == "binned":
         log.debug("Found binned production ...")
@@ -159,20 +111,26 @@ def _production_from_yaml(input_yaml: dict):
     return Production(base_q=base_q, time_variation_type=t_var_type, params=params)
 
 
-def _parent_from_yaml(input_yaml: dict):
+def _parent_from_yaml(input_yaml: dict, init_ratio: bool) -> Parent:
     p = input_yaml['parent']
+
+    # if we specify either of p[tau_d] or p[T_to_d_ratio] as a list in the yaml, this errors out
+    #  so init_ratio = false avoids the multiplication.  The user has to fill in tau_T later!
+    tau_T = 0 * u.s
+    if init_ratio:
+        tau_T=p['tau_d'] * p['T_to_d_ratio'] * u.s,
 
     return Parent(
             name=p.get('name'),
             v_outflow=p['v_outflow'] * u.km/u.s,
             tau_d=p['tau_d'] * u.s,
-            tau_T=p['tau_d'] * p['T_to_d_ratio'] * u.s,
+            tau_T=tau_T,
             sigma=p['sigma'] * u.cm**2,
             T_to_d_ratio=p['T_to_d_ratio']
             )
 
 
-def _fragment_from_yaml(input_yaml: dict):
+def _fragment_from_yaml(input_yaml: dict) -> Fragment:
     f = input_yaml['fragment']
 
     return Fragment(
@@ -182,18 +140,19 @@ def _fragment_from_yaml(input_yaml: dict):
             )
 
 
-def _comet_from_yaml(input_yaml: dict):
+def _comet_from_yaml(input_yaml: dict) -> Comet:
     p = input_yaml['comet']
 
     return Comet(
             name=p.get('name'),
             rh=p.get('rh', 1.0) * u.AU,
             delta=p.get('delta', 1.0) * u.AU,
-            transform_method=p.get('transform_method')
+            transform_method=p.get('transform_method'),
+            transform_applied=p.get('transform_applied', False)
             )
 
 
-def _grid_from_yaml(input_yaml: dict):
+def _grid_from_yaml(input_yaml: dict) -> Grid:
     g = input_yaml['grid']
 
     return Grid(
@@ -203,7 +162,9 @@ def _grid_from_yaml(input_yaml: dict):
             )
 
 
-def _apply_transform_method(vmc: VectorialModelConfig):
+def _apply_transform_method(vmc: VectorialModelConfig) -> None:
+
+    log.info("Current transform state: %s", vmc.comet.transform_applied)
 
     if vmc.comet.transform_applied:
         log.info("Attempted to apply transform more than once, skipping")
@@ -255,7 +216,7 @@ def _apply_transform_method(vmc: VectorialModelConfig):
     vmc.comet.transform_applied = True
 
 
-def _read_yaml_from_file(filepath) -> dict:
+def _read_yaml_from_file(filepath: str) -> dict:
     """ Read YAML file from disk and return dictionary """
     with open(filepath, 'r') as stream:
         try:
@@ -263,58 +224,3 @@ def _read_yaml_from_file(filepath) -> dict:
         except yaml.YAMLError as exc:
             print(exc)
     return param_yaml
-
-
-def vm_config_to_yaml(vmc: VectorialModelConfig, filepath: str) -> None:
-
-    vmc_to_write = _strip_of_units(vmc)
-
-    with open(filepath, 'w') as stream:
-        try:
-            yaml.safe_dump(asdict(vmc_to_write), stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-
-
-def _strip_of_units(vmc_old: VectorialModelConfig):
-    # TODO: remove the float() calls once the bug in pyyaml writing decimal numbers is fixed
-    # https://github.com/yaml/pyyaml/issues/255
-
-    vmc = copy.deepcopy(vmc_old)
-
-    vmc.production.base_q = float(vmc.production.base_q.to(1/u.s).value)
-
-    p = vmc.production
-    # handle the time-variation types
-    if 'time_variation_type':
-        t_var_type = p.time_variation_type
-        if t_var_type == "binned":
-            p.params['q_t'] = list(map(float, list(p.params['q_t'].to(1/u.s).value)))
-            p.params['times_at_productions'] = list(map(float, list(p.params['times_at_productions'].to(u.day).value)))
-        elif t_var_type == "gaussian":
-            p.params['amplitude'] = float(p.params['amplitude'].to(1/u.s).value)
-            p.params['t_max'] = float(p.params['t_max'].to(u.hour).value)
-            p.params['std_dev'] = float(p.params['std_dev'].to(u.hour).value)
-        elif t_var_type == "sine wave":
-            p.params['amplitude'] = float(p.params['amplitude'].to(1/u.s).value)
-            p.params['period'] = float(p.params['period'].to(u.hour).value)
-            p.params['delta'] = float(p.params['delta'].to(u.hour).value)
-        elif t_var_type == "square pulse":
-            p.params['amplitude'] = float(p.params['amplitude'].to(1/u.s).value)
-            p.params['t_start'] = float(p.params['t_start'].to(u.hour).value)
-            p.params['duration'] = float(p.params['duration'].to(u.hour).value)
-
-    vmc.parent.v_outflow = float(vmc.parent.v_outflow.to(u.km/u.s).value)
-    vmc.parent.tau_T = float(vmc.parent.tau_T.to(u.s).value)
-    vmc.parent.tau_d = float(vmc.parent.tau_d.to(u.s).value)
-    vmc.parent.sigma = float(vmc.parent.sigma.to(u.cm**2).value)
-
-    # fragment
-    vmc.fragment.v_photo = float(vmc.fragment.v_photo.to(u.km/u.s).value)
-    vmc.fragment.tau_T = float(vmc.fragment.tau_T.to(u.s).value)
-
-    # comet info
-    vmc.comet.rh = float(vmc.comet.rh.to(u.AU).value)
-    vmc.comet.delta = float(vmc.comet.delta.to(u.AU).value)
-
-    return vmc
