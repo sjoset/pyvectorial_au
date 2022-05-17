@@ -8,6 +8,10 @@ import matplotlib.cm as cmx
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.colors import Normalize
 
+from .vmconfig import VectorialModelConfig
+from .vmresult import VectorialModelResult
+from .fragment_sputter import FragmentSputterCartesian
+
 solarbluecol = np.array([38, 139, 220]) / 255.
 solarblue = (solarbluecol[0], solarbluecol[1], solarbluecol[2], 1)
 solargreencol = np.array([133, 153, 0]) / 255.
@@ -505,3 +509,381 @@ def radial_density_plots_fortran(vmodel, vgrid, vdens, frag_name, show_plots=Tru
     if show_plots:
         plt.show()
     plt.close(fig)
+
+
+def find_cdens_inflection_points_new(vmr: VectorialModelResult):
+    """
+        Look for changes in sign of second derivative of the column density,
+        given a VectorialModelResult and return a list of inflection points
+    """
+
+    xs = np.linspace(0, 5e8, num=100)
+    concavity = vmr.column_density_interpolation.derivative(nu=2)
+    ys = concavity(xs)
+
+    # for pair in zip(xs, ys):
+    #     print(f"R: {pair[0]:08.1e}\t\tConcavity: {pair[1]:8.8f}")
+
+    # Array of 1s or 0s marking if the sign changed from one element to the next
+    sign_changes = (np.diff(np.sign(ys)) != 0)*1
+
+    # Manually remove the weirdness near the nucleus and rezize the array
+    sign_changes[0] = 0
+    sign_changes = np.resize(sign_changes, 100)
+
+    inflection_points = xs*sign_changes
+    # Only want non-zero elements
+    inflection_points = inflection_points[inflection_points > 0]
+
+    # Only want inflection points outside the collision sphere
+    csphere_radius = vmr.collision_sphere_radius.to_value(u.m)
+    inflection_points = inflection_points[inflection_points > csphere_radius]
+
+    inflection_points = inflection_points * u.m
+    return inflection_points
+
+
+def radial_density_plots_new(vmc: VectorialModelConfig, vmr: VectorialModelResult, r_units, voldens_units, show_plots=True, out_file=None):
+
+    interp_color = myblue
+    model_color = myred
+    linear_color = mygreen
+    csphere_color = mybblue
+    csphere_text_color = myblack
+    inflection_color = mybblack
+
+    # view of entire grid space around comet
+    x_min_logplot = 4
+    x_max_logplot = 11
+
+    # zoom-in near the nucleus
+    x_min_linear = (0 * u.km).to(u.m)
+    x_max_linear = (2000 * u.km).to(u.m)
+
+    lin_interp_x = np.linspace(x_min_linear.value, x_max_linear.value, num=200)
+    lin_interp_y = vmr.volume_density_interpolation(lin_interp_x)/(u.m**3)
+    lin_interp_x *= u.m
+
+    log_interp_x = np.logspace(x_min_logplot, x_max_logplot, num=200)
+    log_interp_y = vmr.volume_density_interpolation(log_interp_x)/(u.m**3)
+    log_interp_x *= u.m
+
+    plt.style.use('Solarize_Light2')
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+
+    ax1.set(xlabel=f'Distance from nucleus, {r_units.to_string()}')
+    ax1.set(ylabel=f"Fragment density, {voldens_units.unit.to_string()}")
+    ax2.set(xlabel=f'Distance from nucleus, {r_units.to_string()}')
+    ax2.set(ylabel=f"Fragment density, {voldens_units.unit.to_string()}")
+    fig.suptitle(f"Calculated radial volume density of {vmc.fragment.name}")
+
+    ax1.set_xlim([x_min_linear.to(r_units), x_max_linear.to(r_units)])
+    ax1.plot(lin_interp_x.to(r_units), lin_interp_y.to(voldens_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
+    ax1.plot(vmr.volume_density_grid.to(r_units), vmr.volume_density.to(voldens_units), 'o', color=model_color, label="model")
+    ax1.plot(vmr.volume_density_grid.to(r_units), vmr.volume_density.to(voldens_units), '--', color=linear_color,
+             linewidth=1.0, label="linear interpolation")
+
+    ax2.set_xscale('log')
+    ax2.set_yscale('log')
+    ax2.loglog(log_interp_x.to(r_units), log_interp_y.to(voldens_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
+    ax2.loglog(vmr.volume_density_grid.to(r_units), vmr.volume_density.to(voldens_units), 'o',
+               color=model_color, label="model")
+    ax2.loglog(vmr.volume_density_grid.to(r_units), vmr.volume_density.to(voldens_units), '--',
+               color=linear_color, linewidth=1.0, label="linear interpolation")
+
+    ax1.set_ylim(bottom=0)
+
+    # Mark the beginning of the collision sphere
+    ax1.axvline(x=vmr.collision_sphere_radius, color=csphere_color)
+    ax2.axvline(x=vmr.collision_sphere_radius, color=csphere_color)
+
+    # Text for the collision sphere
+    plt.text((vmr.collision_sphere_radius*1.1).to(r_units), (lin_interp_y[0]/20).to(voldens_units), 'Collision Sphere Edge',
+             color=csphere_text_color)
+
+    plt.legend(loc='upper right', frameon=False)
+
+    # Find possible inflection points
+    for ipoint in find_cdens_inflection_points_new(vmr):
+        ax1.axvline(x=ipoint, color=inflection_color)
+
+    if out_file is not None:
+        plt.savefig(out_file)
+    if show_plots:
+        plt.show()
+
+    return plt, fig, ax1, ax2
+
+
+def column_density_plots_new(vmc: VectorialModelConfig, vmr: VectorialModelResult, r_units, cd_units, show_plots=True, out_file=None):
+
+    interp_color = myblue
+    model_color = myred
+    linear_color = mygreen
+    csphere_color = mybblue
+    csphere_text_color = myblack
+    inflection_color = mybblack
+
+    # in meters, typically the whole grid space covered here
+    x_min_logplot = 4
+    x_max_logplot = 11
+
+    # for a zoom-in near the nucleus
+    x_min_linear = (0 * u.km).to(u.m)
+    x_max_linear = (2000 * u.km).to(u.m)
+
+    # model works in meters
+    lin_interp_x = np.linspace(x_min_linear.value, x_max_linear.value, num=200)
+    lin_interp_y = vmr.column_density_interpolation(lin_interp_x)/(u.m**2)
+    lin_interp_x *= u.m
+
+    log_interp_x = np.logspace(x_min_logplot, x_max_logplot, num=200)
+    log_interp_y = vmr.column_density_interpolation(log_interp_x)/(u.m**2)
+    log_interp_x *= u.m
+
+    plt.style.use('Solarize_Light2')
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+
+    ax1.set(xlabel=f'Distance from nucleus, {r_units.to_string()}')
+    ax1.set(ylabel=f"Fragment column density, {cd_units.unit.to_string()}")
+    ax2.set(xlabel=f'Distance from nucleus, {r_units.to_string()}')
+    ax2.set(ylabel=f"Fragment column density, {cd_units.unit.to_string()}")
+    fig.suptitle(f"Calculated column density of {vmc.fragment.name}")
+
+    ax1.set_xlim([x_min_linear.to(r_units), x_max_linear.to(r_units)])
+    ax1.plot(lin_interp_x.to(r_units), lin_interp_y.to(cd_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
+    ax1.plot(vmr.column_density_grid.to(r_units), vmr.column_density.to(cd_units), 'o', color=model_color, label="model")
+    ax1.plot(vmr.column_density_grid.to(r_units), vmr.column_density.to(cd_units), '--', color=linear_color,
+             label="linear interpolation", linewidth=1.0)
+
+    ax2.set_xscale('log')
+    ax2.set_yscale('log')
+    ax2.loglog(log_interp_x.to(r_units), log_interp_y.to(cd_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
+    ax2.loglog(vmr.column_density_grid.to(r_units), vmr.column_density.to(cd_units), 'o', color=model_color, label="model")
+    ax2.loglog(vmr.column_density_grid.to(r_units), vmr.column_density.to(cd_units), '--', color=linear_color,
+               label="linear interpolation", linewidth=1.0)
+
+    # limits for plot 1
+    ax1.set_ylim(bottom=0)
+
+    # Mark the beginning of the collision sphere
+    ax1.axvline(x=vmr.collision_sphere_radius, color=csphere_color)
+    ax2.axvline(x=vmr.collision_sphere_radius, color=csphere_color)
+
+    # Only plot as far as the maximum radius of our grid on log-log plot
+    ax2.axvline(x=vmr.max_grid_radius)
+
+    # Mark the collision sphere
+    plt.text((vmr.collision_sphere_radius*1.1).to(r_units), (lin_interp_y[0]/20).to(cd_units), 'Collision Sphere Edge',
+             color=csphere_text_color)
+
+    plt.legend(loc='upper right', frameon=False)
+
+    # Find possible inflection points
+    for ipoint in find_cdens_inflection_points_new(vmr):
+        ax1.axvline(x=ipoint, color=inflection_color)
+        ax2.axvline(x=ipoint, color=inflection_color, linewidth=0.5)
+
+    if out_file is not None:
+        plt.savefig(out_file)
+    if show_plots:
+        plt.show()
+
+    return plt, fig, ax1, ax2
+
+
+def column_density_plot_3d_new(vmc: VectorialModelConfig, vmr: VectorialModelResult,
+        x_min, x_max, y_min, y_max, grid_step_x, grid_step_y, r_units,
+        cd_units, view_angles=(90, 90), show_plots=True, out_file=None,
+        vmin=None, vmax=None):
+
+    x = np.linspace(x_min.to(u.m).value, x_max.to(u.m).value, grid_step_x)
+    y = np.linspace(y_min.to(u.m).value, y_max.to(u.m).value, grid_step_y)
+    xv, yv = np.meshgrid(x, y)
+    z = vmr.column_density_interpolation(np.sqrt(xv**2 + yv**2))
+    # column_density_interpolation spits out m^-2
+    fz = (z/u.m**2).to(cd_units)
+
+    xu = np.linspace(x_min.to(r_units), x_max.to(r_units), grid_step_x)
+    yu = np.linspace(y_min.to(r_units), y_max.to(r_units), grid_step_y)
+    xvu, yvu = np.meshgrid(xu, yu)
+
+    plt.style.use('Solarize_Light2')
+    plt.style.use('dark_background')
+    plt.rcParams['grid.color'] = "black"
+
+    fig = plt.figure(figsize=(20, 20))
+    ax = plt.axes(projection='3d')
+    # ax.grid(False)
+    surf = ax.plot_surface(xvu, yvu, fz, cmap='inferno', vmin=vmin, vmax=vmax, edgecolor='none')
+
+    plt.gca().set_zlim(bottom=0)
+
+    ax.set_xlabel(f'Distance, ({r_units.to_string()})')
+    ax.set_ylabel(f'Distance, ({r_units.to_string()})')
+    ax.set_zlabel(f"Column density, {cd_units.unit.to_string()}")
+    plt.title(f"Calculated column density of {vmc.fragment.name}")
+
+    ax.w_xaxis.set_pane_color(solargreen)
+    ax.w_yaxis.set_pane_color(solarblue)
+    ax.w_zaxis.set_pane_color(solarblack)
+
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+    ax.view_init(view_angles[0], view_angles[1])
+
+    if out_file is not None:
+        plt.savefig(out_file)
+    if show_plots:
+        plt.show()
+
+    return plt, fig, ax, surf
+
+
+def plot_fragment_sputter(fsc: FragmentSputterCartesian, dist_units, sputter_units, trisurf=False, show_plots=True, out_file=None):
+
+    fig = plt.figure(figsize=(20, 20))
+
+    plt.style.use('Solarize_Light2')
+    colorsMap = 'viridis'
+    # colorsMap = 'jet'
+    cm = plt.get_cmap(colorsMap)
+
+    method = 'saturate'
+    if method == 'saturate':
+        cNorm = Normalize(vmin=np.min(fsc.fragment_density.to(sputter_units).value), vmax=np.max(fsc.fragment_density.to(sputter_units).value)/30)
+    # elif method == 'multiple_of_min':
+    #     # only color the points less than a threshold value to see the detail
+    #     # in the tinier sputter values
+    #     zmask = 100
+    #     zs = np.ma.masked_where(zs >= np.min(zs)*zmask, zs)
+    #     cNorm = Normalize(vmin=np.min(zs), vmax=zmask*np.min(zs))
+    # elif method == 'percent_of_max':
+    #     zs = np.ma.masked_where(zs <= np.max(zs)/10, zs)
+    #     cNorm = Normalize(vmin=np.min(zs), vmax=np.max(zs))
+
+    scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
+
+    ax = Axes3D(fig)
+    ax.set(xlabel=f"x, {dist_units.to_string()}")
+    ax.set(ylabel=f"y, {dist_units.to_string()}")
+    ax.set(zlabel=f"fragment volume density, {sputter_units.unit.to_string()}")
+    fig.suptitle("Fragment sputter")
+    ax.set_box_aspect((1, 1, 1))
+    # ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
+
+    # highlight the outflow axis, along positive y
+    origin = [0, 0, 0]
+    outflow_max = [0, fsc.r_limit.to(dist_units).value, 0]
+    ax.plot(origin, outflow_max, color=myblue, lw=2, label='outflow axis')
+    # ax.quiver(0, within_r_km/2, 0, 0, within_r_km*0.4, 0, color=mybblue, lw=2)
+
+    if trisurf:
+        ax.plot_trisurf(fsc.xs.to(dist_units), fsc.ys.to(dist_units), fsc.fragment_density.to(sputter_units), color='white', edgecolors='grey', alpha=0.5)
+    ax.scatter(fsc.xs.to(dist_units), fsc.ys.to(dist_units), fsc.fragment_density.to(sputter_units), c=scalarMap.to_rgba(fsc.fragment_density.to(sputter_units).value))
+    scalarMap.set_array(fsc.fragment_density.to(sputter_units).value)
+    # fig.colorbar(scalarMap)
+    plt.legend(loc='upper right', frameon=False)
+    if out_file is not None:
+        plt.savefig(out_file)
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+
+def plot_sputters_new(fortran_sputter: FragmentSputterCartesian, sbpy_sputter: FragmentSputterCartesian, dist_units, sputter_units, trisurf=False, show_plots=True, out_file=None):
+    fig = plt.figure(figsize=(20, 20))
+
+    plt.style.use('Solarize_Light2')
+    colorsMap = 'viridis'
+    # colorsMap = 'jet'
+    cm = plt.get_cmap(colorsMap)
+
+    method = 'saturate'
+    if method == 'saturate':
+        cNorm = Normalize(vmin=np.min(sbpy_sputter.fragment_density.to(sputter_units).value), vmax=np.max(sbpy_sputter.fragment_density.to(sputter_units).value)/30)
+    # elif method == 'multiple_of_min':
+    #     # only color the points less than a threshold value to see the detail
+    #     # in the tinier sputter values
+    #     zmask = 100
+    #     zs = np.ma.masked_where(zs >= np.min(zs)*zmask, zs)
+    #     cNorm = Normalize(vmin=np.min(zs), vmax=zmask*np.min(zs))
+    # elif method == 'percent_of_max':
+    #     zs = np.ma.masked_where(zs <= np.max(zs)/10, zs)
+    #     cNorm = Normalize(vmin=np.min(zs), vmax=np.max(zs))
+
+    scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
+
+    ax = Axes3D(fig)
+    ax.set(xlabel=f"x, {dist_units.to_string()}")
+    ax.set(ylabel=f"y, {dist_units.to_string()}")
+    ax.set(zlabel=f"fragment volume density, {sputter_units.unit.to_string()}")
+    fig.suptitle("Fragment sputter comparison")
+    ax.set_box_aspect((1, 1, 1))
+    # ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
+
+    # highlight the outflow axis, along positive y
+    origin = [0, 0, 0]
+    outflow_max = [0, sbpy_sputter.r_limit.to(dist_units).value, 0]
+    ax.plot(origin, outflow_max, color=myblue, lw=2, label='outflow axis')
+    # ax.quiver(0, within_r_km/2, 0, 0, within_r_km*0.4, 0, color=mybblue, lw=2)
+
+    if trisurf:
+        ax.plot_trisurf(sbpy_sputter.xs.to(dist_units), sbpy_sputter.ys.to(dist_units), sbpy_sputter.fragment_density.to(sputter_units), color='white', edgecolors='grey', alpha=0.5)
+    ax.scatter(sbpy_sputter.xs.to(dist_units), sbpy_sputter.ys.to(dist_units), sbpy_sputter.fragment_density.to(sputter_units), c=scalarMap.to_rgba(sbpy_sputter.fragment_density.to(sputter_units).value))
+    ax.scatter(fortran_sputter.xs.to(dist_units), fortran_sputter.ys.to(dist_units), fortran_sputter.fragment_density.to(sputter_units), color='red', label='fortran')
+    scalarMap.set_array(sbpy_sputter.fragment_density.to(sputter_units).value)
+    # fig.colorbar(scalarMap)
+    plt.legend(loc='upper right', frameon=False)
+    if out_file is not None:
+        plt.savefig(out_file)
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # """ Combined plotting of fortran and vectorial model results """
+    #
+    # pxs, pys, pzs = build_sputter_python(vmodel, within_r_km, mirrored=mirrored)
+    # # convert python distances to km from m
+    # pxs = pxs/1000
+    # pys = pys/1000
+    # # convert python density to 1/cm**3 from 1/m**3
+    # pzs = pzs/1e6
+    # fxs, fys, fzs = build_sputter_fortran(f_sputter, within_r_km, mirrored=mirrored)
+    #
+    # fig = plt.figure(figsize=(20, 20))
+    # plt.style.use('Solarize_Light2')
+    #
+    # colorsMap = 'viridis'
+    # cm = plt.get_cmap(colorsMap)
+    # cNorm = Normalize(vmin=np.min(pzs), vmax=np.max(pzs))
+    # scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
+    #
+    # ax = Axes3D(fig)
+    # ax.set(xlabel="x, km")
+    # ax.set(ylabel="y, km")
+    # ax.set(zlabel="fragment volume density, 1/cm^2")
+    # fig.suptitle("Fragment sputter comparison")
+    #
+    # # highlight the outflow axis, along positive y
+    # outflow_max = 1000
+    # origin = [0, 0, 0]
+    # outflow_max = [0, within_r_km, 0]
+    # ax.plot(origin, outflow_max, color=myblue, lw=2, label='outflow axis')
+    # # ax.quiver(0, within_r_km/2, 0, 0, within_r_km*0.4, 0, color=mybblue, lw=2)
+    #
+    # if trisurf:
+    #     # ax.plot_trisurf(fxs, fys, fzs, color='white', edgecolors='grey', alpha=0.5)
+    #     ax.plot_trisurf(pxs, pys, pzs, color='white', edgecolors='grey', alpha=0.5)
+    # ax.scatter(pxs, pys, pzs, c=scalarMap.to_rgba(pzs), label='python')
+    # # ax.scatter(fxs, fys, fzs, c=scalarMap.to_rgba(fzs))
+    # ax.scatter(fxs, fys, fzs, color='red', label='fortran')
+    # scalarMap.set_array(pzs)
+    # plt.legend(loc='upper right', frameon=False)
+    # fig.colorbar(scalarMap)
+    # if out_file is not None:
+    #     plt.savefig(out_file)
+    # if show_plots:
+    #     plt.show()
+    # plt.close(fig)

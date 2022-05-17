@@ -14,8 +14,11 @@ from .vmwriter import save_vmodel
 from .vmrunner import run_vmodel
 
 from .vmconfig import VectorialModelConfig
+from .vmresult import VectorialModelResult, get_result_from_coma
 
 from .vmconfigread import vm_configs_from_yaml
 from .vmconfigwrite import vm_config_to_yaml_file
 
 from .input_transforms import apply_input_transform, unapply_input_transform
+
+from .fragment_sputter import FragmentSputterCartesian, FragmentSputterPolar, fragment_sputter_from_sbpy, fragment_sputter_from_fortran
