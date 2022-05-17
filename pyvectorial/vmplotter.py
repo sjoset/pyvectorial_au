@@ -78,22 +78,21 @@ def radial_density_plots(vmodel, r_units, voldens_units, frag_name, show_plots=T
     csphere_text_color = myblack
     inflection_color = mybblack
 
-    x_min_logplot = 2
-    x_max_logplot = 9
+    # view of entire grid space around comet
+    x_min_logplot = 4
+    x_max_logplot = 11
 
+    # zoom-in near the nucleus
     x_min_linear = (0 * u.km).to(u.m)
-    x_max_linear = (10000 * u.km).to(u.m)
-    # x_max_linear = (2000 * u.km).to(u.m)
+    x_max_linear = (2000 * u.km).to(u.m)
 
     lin_interp_x = np.linspace(x_min_linear.value, x_max_linear.value, num=200)
     lin_interp_y = vmodel['r_dens_interpolation'](lin_interp_x)/(u.m**3)
     lin_interp_x *= u.m
-    # lin_interp_x.to(r_units)
 
     log_interp_x = np.logspace(x_min_logplot, x_max_logplot, num=200)
     log_interp_y = vmodel['r_dens_interpolation'](log_interp_x)/(u.m**3)
     log_interp_x *= u.m
-    # log_interp_x.to(r_units)
 
     plt.style.use('Solarize_Light2')
 
@@ -105,29 +104,28 @@ def radial_density_plots(vmodel, r_units, voldens_units, frag_name, show_plots=T
     ax2.set(ylabel=f"Fragment density, {voldens_units.unit.to_string()}")
     fig.suptitle(f"Calculated radial volume density of {frag_name}")
 
-    ax1.set_xlim([x_min_linear, x_max_linear])
-    ax1.plot(lin_interp_x, lin_interp_y.to(voldens_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
-    ax1.plot(vmodel['radial_grid'], vmodel['radial_density'].to(voldens_units), 'o', color=model_color, label="model")
-    ax1.plot(vmodel['radial_grid'], vmodel['radial_density'].to(voldens_units), '--', color=linear_color,
+    ax1.set_xlim([x_min_linear.to(r_units), x_max_linear.to(r_units)])
+    ax1.plot(lin_interp_x.to(r_units), lin_interp_y.to(voldens_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
+    ax1.plot(vmodel['radial_grid'].to(r_units), vmodel['radial_density'].to(voldens_units), 'o', color=model_color, label="model")
+    ax1.plot(vmodel['radial_grid'].to(r_units), vmodel['radial_density'].to(voldens_units), '--', color=linear_color,
              linewidth=1.0, label="linear interpolation")
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
-    ax2.loglog(log_interp_x, log_interp_y.to(voldens_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
-    ax2.loglog(vmodel['fast_radial_grid'], vmodel['radial_density'].to(voldens_units), 'o',
+    ax2.loglog(log_interp_x.to(r_units), log_interp_y.to(voldens_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
+    ax2.loglog(vmodel['radial_grid'].to(r_units), vmodel['radial_density'].to(voldens_units), 'o',
                color=model_color, label="model")
-    ax2.loglog(vmodel['fast_radial_grid'], vmodel['radial_density'].to(voldens_units), '--',
+    ax2.loglog(vmodel['radial_grid'].to(r_units), vmodel['radial_density'].to(voldens_units), '--',
                color=linear_color, linewidth=1.0, label="linear interpolation")
 
     ax1.set_ylim(bottom=0)
-    ax2.set_ylim(bottom=0.1)
 
     # Mark the beginning of the collision sphere
     ax1.axvline(x=vmodel['collision_sphere_radius'], color=csphere_color)
     ax2.axvline(x=vmodel['collision_sphere_radius'], color=csphere_color)
 
     # Text for the collision sphere
-    plt.text(vmodel['collision_sphere_radius']*2, lin_interp_y[0]/10, 'Collision Sphere Edge',
+    plt.text((vmodel['collision_sphere_radius']*1.1).to(r_units), (lin_interp_y[0]/20).to(voldens_units), 'Collision Sphere Edge',
              color=csphere_text_color)
 
     plt.legend(loc='upper right', frameon=False)
@@ -153,21 +151,22 @@ def column_density_plots(vmodel, r_units, cd_units, frag_name, show_plots=True, 
     csphere_text_color = myblack
     inflection_color = mybblack
 
+    # in meters, typically the whole grid space covered here
     x_min_logplot = 4
     x_max_logplot = 11
 
+    # for a zoom-in near the nucleus
     x_min_linear = (0 * u.km).to(u.m)
     x_max_linear = (2000 * u.km).to(u.m)
 
+    # model works in meters
     lin_interp_x = np.linspace(x_min_linear.value, x_max_linear.value, num=200)
     lin_interp_y = vmodel['column_density_interpolation'](lin_interp_x)/(u.m**2)
     lin_interp_x *= u.m
-    lin_interp_x.to(r_units)
 
     log_interp_x = np.logspace(x_min_logplot, x_max_logplot, num=200)
     log_interp_y = vmodel['column_density_interpolation'](log_interp_x)/(u.m**2)
     log_interp_x *= u.m
-    log_interp_x.to(r_units)
 
     plt.style.use('Solarize_Light2')
 
@@ -179,24 +178,21 @@ def column_density_plots(vmodel, r_units, cd_units, frag_name, show_plots=True, 
     ax2.set(ylabel=f"Fragment column density, {cd_units.unit.to_string()}")
     fig.suptitle(f"Calculated column density of {frag_name}")
 
-    ax1.set_xlim([x_min_linear, x_max_linear])
-    ax1.plot(lin_interp_x, lin_interp_y, color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
-    ax1.plot(vmodel['column_density_grid'], vmodel['column_densities'], 'o', color=model_color, label="model")
-    ax1.plot(vmodel['column_density_grid'], vmodel['column_densities'], '--', color=linear_color,
+    ax1.set_xlim([x_min_linear.to(r_units), x_max_linear.to(r_units)])
+    ax1.plot(lin_interp_x.to(r_units), lin_interp_y.to(cd_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
+    ax1.plot(vmodel['column_density_grid'].to(r_units), vmodel['column_densities'].to(cd_units), 'o', color=model_color, label="model")
+    ax1.plot(vmodel['column_density_grid'].to(r_units), vmodel['column_densities'].to(cd_units), '--', color=linear_color,
              label="linear interpolation", linewidth=1.0)
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
-    ax2.loglog(log_interp_x, log_interp_y, color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
-    ax2.loglog(vmodel['column_density_grid'], vmodel['column_densities'], 'o', color=model_color, label="model")
-    ax2.loglog(vmodel['column_density_grid'], vmodel['column_densities'], '--', color=linear_color,
+    ax2.loglog(log_interp_x.to(r_units), log_interp_y.to(cd_units), color=interp_color,  linewidth=2.0, linestyle="-", label="cubic spline")
+    ax2.loglog(vmodel['column_density_grid'].to(r_units), vmodel['column_densities'].to(cd_units), 'o', color=model_color, label="model")
+    ax2.loglog(vmodel['column_density_grid'].to(r_units), vmodel['column_densities'].to(cd_units), '--', color=linear_color,
                label="linear interpolation", linewidth=1.0)
 
     # limits for plot 1
     ax1.set_ylim(bottom=0)
-
-    # limits for plot 2
-    # ax2.set_xlim(right=vmodel['max_grid_radius'])
 
     # Mark the beginning of the collision sphere
     ax1.axvline(x=vmodel['collision_sphere_radius'], color=csphere_color)
@@ -206,7 +202,7 @@ def column_density_plots(vmodel, r_units, cd_units, frag_name, show_plots=True, 
     ax2.axvline(x=vmodel['max_grid_radius'])
 
     # Mark the collision sphere
-    plt.text(vmodel['collision_sphere_radius']*1.1, lin_interp_y[0]/10, 'Collision Sphere Edge',
+    plt.text((vmodel['collision_sphere_radius']*1.1).to(r_units), (lin_interp_y[0]/20).to(cd_units), 'Collision Sphere Edge',
              color=csphere_text_color)
 
     plt.legend(loc='upper right', frameon=False)
@@ -225,7 +221,7 @@ def column_density_plots(vmodel, r_units, cd_units, frag_name, show_plots=True, 
 
 
 def column_density_plot_3d(vmodel, x_min, x_max, y_min, y_max, grid_step_x, grid_step_y, r_units, cd_units,
-                           frag_name, view_angles=(90, 90), show_plots=True, out_file=None):
+                           frag_name, view_angles=(90, 90), show_plots=True, out_file=None, vmin=None, vmax=None):
 
     x = np.linspace(x_min.to(u.m).value, x_max.to(u.m).value, grid_step_x)
     y = np.linspace(y_min.to(u.m).value, y_max.to(u.m).value, grid_step_y)
@@ -245,7 +241,7 @@ def column_density_plot_3d(vmodel, x_min, x_max, y_min, y_max, grid_step_x, grid
     fig = plt.figure(figsize=(20, 20))
     ax = plt.axes(projection='3d')
     # ax.grid(False)
-    surf = ax.plot_surface(xvu, yvu, fz, cmap='inferno', vmin=0, edgecolor='none')
+    surf = ax.plot_surface(xvu, yvu, fz, cmap='inferno', vmin=vmin, vmax=vmax, edgecolor='none')
 
     plt.gca().set_zlim(bottom=0)
 

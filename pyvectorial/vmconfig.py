@@ -1,10 +1,12 @@
 
+import astropy.units as u
+
 from dataclasses import dataclass
 
 
 @dataclass
 class Production:
-    base_q: float
+    base_q: u.quantity.Quantity
     time_variation_type: str
     params: dict
 
@@ -12,25 +14,25 @@ class Production:
 @dataclass
 class Parent:
     name: str
-    v_outflow: float
-    tau_d: float
-    tau_T: float
-    sigma: float
+    v_outflow: u.quantity.Quantity
+    tau_d: u.quantity.Quantity
+    tau_T: u.quantity.Quantity
+    sigma: u.quantity.Quantity
     T_to_d_ratio: float
 
 
 @dataclass
 class Fragment:
     name: str
-    v_photo: float
-    tau_T: float
+    v_photo: u.quantity.Quantity
+    tau_T: u.quantity.Quantity
 
 
 @dataclass
 class Comet:
     name: str
-    rh: float
-    delta: float
+    rh: u.quantity.Quantity
+    delta: u.quantity.Quantity
     transform_method: str
     transform_applied: bool
 

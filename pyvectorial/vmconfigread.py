@@ -6,10 +6,79 @@ import logging as log
 import astropy.units as u
 import numpy as np
 
+from itertools import product
+
 from .vmconfig import VectorialModelConfig, Production, Parent, Fragment, Comet, Grid
+from .input_transforms import apply_input_transform
 
 
-def vm_config_from_yaml(filepath: str, init_ratio: bool = True) -> VectorialModelConfig:
+def vm_configs_from_yaml(filepath: str) -> list[VectorialModelConfig]:
+
+    """
+        Takes a filename with yaml configuration in it and returns
+        a list of all configs if any of the keys 'allowed_variations'
+        is defined as a list
+    """
+
+    vmc = _vm_config_from_yaml(filepath, init_ratio=False)
+
+    # holds a list of all combinations of changing parameters in vmc,
+    # values given as lists instead of single values
+    varying_parameters = []
+
+    # list of VectorialModelConfigs built from these changing parameters
+    psets = []
+
+    # Look at these inputs and build all possible combinations for running
+    allowed_variations = [
+        vmc.production.base_q,
+        vmc.parent.tau_d,
+        vmc.fragment.tau_T
+        ]
+
+    q_t_variation = None
+    # check for outburst variations that may or may not exist
+    # Gaussian, sine wave, square pulse
+    for variable_key in ['t_max', 'delta', 't_start']:
+        if variable_key in vmc.production.params:
+            allowed_variations.append(vmc.production.params[variable_key])
+            q_t_variation = variable_key
+
+    # check if it is a list, and if not, make it a list of length 1
+    # build list of lists of changing values for input to itertools.product
+    for av in allowed_variations:
+        # already a list, add it
+        if isinstance(av.value, np.ndarray):
+            varying_parameters.append(av)
+        else:
+            # Single value specified so make a 1-element list
+            varying_parameters.append([av])
+
+    for element in product(*varying_parameters):
+
+        # Make copy to append to our list
+        new_vmc = copy.deepcopy(vmc)
+
+        # Update this copy with the values we are varying
+        # format is a tuple with format (base_q, parent_tau_d, fragment_tau_T)
+        new_vmc.production.base_q = copy.copy(element[0])
+        new_vmc.parent.tau_d = copy.copy(element[1])
+        new_vmc.parent.tau_T = copy.copy(element[1]) * new_vmc.parent.T_to_d_ratio
+        new_vmc.fragment.tau_T = copy.copy(element[2])
+
+        if q_t_variation:
+            new_vmc.production.params[q_t_variation] = copy.deepcopy(element[3])
+            print(new_vmc.production.params)
+
+        # we can apply these transforms now that vmc.parent.tau_T is filled in
+        apply_input_transform(new_vmc)
+
+        psets.append(new_vmc)
+
+    return psets
+
+
+def _vm_config_from_yaml(filepath: str, init_ratio: bool = True) -> VectorialModelConfig:
 
     input_yaml = _read_yaml_from_file(filepath)
 
@@ -34,18 +103,18 @@ def vm_config_from_yaml(filepath: str, init_ratio: bool = True) -> VectorialMode
             fragment=fragment,
             comet=comet,
             grid=grid,
-            etc=input_yaml['etc']
+            etc=input_yaml.get('etc')
             )
 
-    # defaults
-    vmc.etc['print_progress'] = input_yaml['etc'].get('print_progress', False)
+    # # defaults
+    if vmc.etc is None:
+        vmc.etc = dict()
+    vmc.etc.setdefault('print_progress', False)
 
-    vmc_orig = copy.deepcopy(vmc)
-    _apply_transform_method(vmc)
-
-    return vmc, vmc_orig
+    return vmc
 
 
+# TODO: break this up into get_gaussian_production(input_yaml: dict) -> Production, etc. etc.
 def _production_from_yaml(input_yaml: dict) -> Production:
 
     # Read the production config from input_yaml and apply units
@@ -106,7 +175,7 @@ def _production_from_yaml(input_yaml: dict) -> Production:
         p['params']['t_start'] *= u.hour
         p['params']['duration'] *= u.hour
         log.debug("Amplitude: %s, t_start: %s, duration: %s", p['params']['amplitude'], p['params']['t_start'], p['params']['duration'])
-    params = p.get('params', None)
+    params = p.get('params', dict())
 
     return Production(base_q=base_q, time_variation_type=t_var_type, params=params)
 
@@ -115,7 +184,8 @@ def _parent_from_yaml(input_yaml: dict, init_ratio: bool) -> Parent:
     p = input_yaml['parent']
 
     # if we specify either of p[tau_d] or p[T_to_d_ratio] as a list in the yaml, this errors out
-    #  so init_ratio = false avoids the multiplication.  The user has to fill in tau_T later!
+    #  so init_ratio = false avoids the multiplication.  The user has to fill in tau_T later if this
+    #  function is called directly
     tau_T = 0 * u.s
     if init_ratio:
         tau_T=p['tau_d'] * p['T_to_d_ratio'] * u.s,
@@ -160,60 +230,6 @@ def _grid_from_yaml(input_yaml: dict) -> Grid:
             angular_points=g.get('angular_points'),
             radial_substeps=g.get('radial_substeps')
             )
-
-
-def _apply_transform_method(vmc: VectorialModelConfig) -> None:
-
-    log.info("Current transform state: %s", vmc.comet.transform_applied)
-
-    if vmc.comet.transform_applied:
-        log.info("Attempted to apply transform more than once, skipping")
-        return
-
-    # if none specified, nothing to do
-    if vmc.comet.transform_method is None:
-        log.info("No valid tranformation of input data specified, no transform applied")
-        return
-
-    log.info("Transforming input parameters using method %s", vmc.comet.transform_method)
-
-    if vmc.comet.transform_method == 'cochran_schleicher_93':
-        # TODO: shouldn't this affect vmc.parent.tau_T instead of the ratio?
-        # TODO: reread the paper to make sure
-        log.info("Reminder: cochran_schleicher_93 overwrites v_outflow of parent")
-        rh = vmc.comet.rh.to(u.AU).value
-        sqrh = np.sqrt(rh)
-
-        v_old = copy.deepcopy(vmc.parent.v_outflow)
-        tau_d_old = copy.deepcopy(vmc.parent.tau_d)
-        ttod_old = copy.deepcopy(vmc.parent.T_to_d_ratio)
-
-        vmc.parent.v_outflow = (0.85/sqrh) * u.km/u.s
-        vmc.parent.tau_d *= rh**2
-        vmc.parent.T_to_d_ratio = vmc.parent.tau_T / vmc.parent.tau_d
-
-        log.info("Effect of transform at %s AU:", rh)
-        log.info("Parent outflow: %s --> %s", v_old, vmc.parent.v_outflow)
-        log.info("Parent tau_d: %s --> %s", tau_d_old, vmc.parent.tau_d)
-        log.info("Total to dissociative ratio: %s --> %s", ttod_old, vmc.parent.T_to_d_ratio)
-
-    elif vmc.comet.transform_method == 'festou_fortran':
-        rh = vmc.comet.rh.to(u.AU).value
-        ptau_d_old = copy.deepcopy(vmc.parent.tau_d)
-        ptau_T_old = copy.deepcopy(vmc.parent.tau_T)
-        ftau_T_old = copy.deepcopy(vmc.fragment.tau_T)
-        vmc.parent.tau_d *= rh**2
-        vmc.parent.tau_T *= rh**2
-        vmc.fragment.tau_T *= rh**2
-        log.info("\tParent tau_d: %s --> %s", ptau_d_old, vmc.parent.tau_d)
-        log.info("\tParent tau_T: %s --> %s", ptau_T_old, vmc.parent.tau_T)
-        log.info("\tFragment tau_T: %s --> %s", ftau_T_old, vmc.fragment.tau_T)
-
-    else:
-        log.info("Invalid transform method specified, skipping")
-        return
-
-    vmc.comet.transform_applied = True
 
 
 def _read_yaml_from_file(filepath: str) -> dict:

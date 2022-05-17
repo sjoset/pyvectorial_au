@@ -1,6 +1,7 @@
 
 import os
 import subprocess
+import logging as log
 
 import numpy as np
 import astropy.units as u
@@ -11,42 +12,6 @@ from .vmconfig import VectorialModelConfig
 """
     For interfacing with the fortran version of the vectorial model, written by Festou, early 1980s
 """
-
-
-def _produce_fortran_fparam(vmc: VectorialModelConfig) -> None:
-
-    """
-        Takes a valid python config and produces a valid fortran input file
-        as long as the production is steady
-    """
-
-    # TODO: binned time production should also be handled here
-    # TODO: parent and fragment destruction levels should also be handled here
-    fparam_outfile = vmc.etc['in_file']
-
-    with open(fparam_outfile, 'w') as out_file:
-        with redirect_stdout(out_file):
-            print(f"{vmc.comet.name}")
-            print(f"{vmc.comet.rh.to(u.AU).value}  {vmc.etc['delta']}")
-            # length of production array: only base production rate for 60 days
-            print("1")
-            print(f"{vmc.production.base_q.to(1/u.s).value}  60.0")
-            # fill in dummy values for the rest of the array
-            for _ in range(19):
-                print("0.0 61")
-            # parent info - speed, total & photo lifetime, destruction level
-            print(f"{vmc.parent.v_outflow.to(u.km/u.s).value}")
-            print(f"{vmc.parent.tau_T.to(u.s).value}")
-            print(f"{vmc.parent.tau_d.to(u.s).value}")
-            print("99.0")
-            # fragment info - gfactor, speed, total lifetime, destruction level
-            print(f"{vmc.fragment.name}")
-            print(f"{vmc.etc['g_factor']}")
-            print(f"{vmc.fragment.v_photo.to(u.km/u.s).value}")
-            print(f"{vmc.fragment.tau_T.to(u.s).value}")
-            print("95.0")
-            # Custom aperture size, unused for our purposes so these are dummy values
-            print("  100.000000       100.00000")
 
 
 def run_fortran_vmodel(vmc: VectorialModelConfig) -> None:
@@ -112,3 +77,46 @@ def read_fortran_vm_output(fort16_file, read_sputter=False):
     sputter = sputter.astype(float)
 
     return vol_grid_points, vol_dens, col_grid_points, col_dens, sputter
+
+
+def _produce_fortran_fparam(vmc: VectorialModelConfig) -> None:
+
+    """
+        Takes a valid python config and produces a valid fortran input file
+        as long as the production is steady
+    """
+
+    if vmc.production.time_variation_type is not None:
+        log.info("Only steady production is supported for producing fortran input files! Skipping.")
+        return
+
+    # TODO: binned time production should also be handled here, but fortran only supports 20 bins of time division
+    #   so we would have to check if the input had 20 or less time bins first
+    # TODO: parent and fragment destruction levels are hard-coded to the defaults in the python version
+    fparam_outfile = vmc.etc['in_file']
+
+    with open(fparam_outfile, 'w') as out_file:
+        with redirect_stdout(out_file):
+            print(f"{vmc.comet.name}")
+            print(f"{vmc.comet.rh.to(u.AU).value}  {vmc.etc['delta']}")
+            # length of production array: only base production rate for 60 days
+            print("1")
+            print(f"{vmc.production.base_q.to(1/u.s).value}  60.0")
+            # fill in dummy values for the rest of the array
+            for _ in range(19):
+                print("0.0 61")
+            # parent info - speed, total & photo lifetime, destruction level
+            print(f"{vmc.parent.v_outflow.to(u.km/u.s).value}")
+            print(f"{vmc.parent.tau_T.to(u.s).value}")
+            print(f"{vmc.parent.tau_d.to(u.s).value}")
+            print("99.0")
+            # fragment info - gfactor, speed, total lifetime, destruction level
+            print(f"{vmc.fragment.name}")
+            print(f"{vmc.etc['g_factor']}")
+            print(f"{vmc.fragment.v_photo.to(u.km/u.s).value}")
+            print(f"{vmc.fragment.tau_T.to(u.s).value}")
+            print("95.0")
+            # Custom aperture size, unused for our purposes so these are dummy values
+            print("  100.000000       100.00000")
+
+
