@@ -772,13 +772,14 @@ def plot_fragment_sputter(fsc: FragmentSputterCartesian | FragmentSputterPolar, 
     fig = plt.figure(figsize=(20, 20))
 
     plt.style.use('Solarize_Light2')
-    colorsMap = 'viridis'
+    colors_map = 'viridis'
     # colorsMap = 'jet'
-    cm = plt.get_cmap(colorsMap)
+    cm = plt.get_cmap(colors_map)
 
     method = 'saturate'
     if method == 'saturate':
-        cNorm = Normalize(vmin=np.min(zs.value), vmax=np.max(zs.value)/30)
+        cNorm = Normalize(vmin=np.min(zs.value), vmax=np.max(zs.value))
+        # cNorm = Normalize(vmin=np.min(zs.value), vmax=np.max(zs.value)/30)
     # elif method == 'multiple_of_min':
     #     # only color the points less than a threshold value to see the detail
     #     # in the tinier sputter values
@@ -816,7 +817,8 @@ def plot_fragment_sputter(fsc: FragmentSputterCartesian | FragmentSputterPolar, 
         plt.savefig(out_file)
     if show_plots:
         plt.show()
-    plt.close(fig)
+
+    return plt, fig, ax
 
 
 def plot_sputters(fortran_sputter: FragmentSputterCartesian, sbpy_sputter: FragmentSputterCartesian, dist_units, sputter_units, within_r=None, trisurf=False, mirrored=False, show_plots=True, out_file=None):

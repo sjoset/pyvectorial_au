@@ -14,7 +14,7 @@ from .vmwriter import save_results
 from .vmrunner import run_vmodel
 
 from .vmconfig import VectorialModelConfig, Production, Parent, Fragment, Comet, Grid
-from .vmresult import VectorialModelResult, get_result_from_coma, cartesian_sputter_from_polar, mirror_sputter
+from .vmresult import VectorialModelResult, get_result_from_coma, FragmentSputterPolar, FragmentSputterCartesian, cartesian_sputter_from_polar, mirror_sputter
 
 from .vmconfigread import vm_configs_from_yaml
 from .vmconfigwrite import vm_config_to_yaml_file

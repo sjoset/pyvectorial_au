@@ -68,7 +68,6 @@ def vm_configs_from_yaml(filepath: str) -> list[VectorialModelConfig]:
 
         if q_t_variation:
             new_vmc.production.params[q_t_variation] = copy.deepcopy(element[3])
-            print(new_vmc.production.params)
 
         # we can apply these transforms now that vmc.parent.tau_T is filled in
         apply_input_transform(new_vmc)

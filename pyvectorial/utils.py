@@ -41,12 +41,12 @@ def show_fragment_agreement(vmr: VectorialModelResult) -> None:
 def show_aperture_checks(coma):
 
     log.debug("Starting aperture checks ...")
-    f_theory = coma.vmodel['num_fragments_theory']
+    f_theory = coma.vmr.num_fragments_theory
 
     # use various large apertures to see how much we recover
-    ap1 = sba.RectangularAperture((coma.vmodel['max_grid_radius'].value, coma.vmodel['max_grid_radius'].value) * u.m)
-    ap2 = sba.CircularAperture((coma.vmodel['max_grid_radius'].value) * u.m)
-    ap3 = sba.AnnularAperture([500000, coma.vmodel['max_grid_radius'].value] * u.m)
+    ap1 = sba.RectangularAperture((coma.vmr.max_grid_radius.value, coma.vmr.max_grid_radius.value) * u.m)
+    ap2 = sba.CircularAperture((coma.vmr.max_grid_radius.value) * u.m)
+    ap3 = sba.AnnularAperture([500000, coma.vmr.max_grid_radius.value] * u.m)
 
     rect_result = coma.total_number(ap1)*100/f_theory
     circular_result = coma.total_number(ap2)*100/f_theory
