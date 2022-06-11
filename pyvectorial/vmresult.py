@@ -42,7 +42,7 @@ class VectorialModelResult:
     num_fragments_grid: float = None
 
 
-def get_result_from_coma(coma_orig: sba.VectorialModel, sputter_normalized: bool = True) -> VectorialModelResult:
+def get_result_from_coma(coma_orig: sba.VectorialModel, solid_angle_sputter: bool = True) -> VectorialModelResult:
     
     coma = copy.deepcopy(coma_orig)
     
@@ -53,11 +53,11 @@ def get_result_from_coma(coma_orig: sba.VectorialModel, sputter_normalized: bool
     vdi = coma.vmr.volume_density_interpolation
     cdi = coma.vmr.column_density_interpolation
 
-    if sputter_normalized:
+    if solid_angle_sputter:
         fs = FragmentSputterPolar(
-                rs=coma.vmr.normalized_sputter.rs,
-                thetas=coma.vmr.normalized_sputter.thetas,
-                fragment_density=coma.vmr.normalized_sputter.fragment_density
+                rs=coma.vmr.solid_angle_sputter.rs,
+                thetas=coma.vmr.solid_angle_sputter.thetas,
+                fragment_density=coma.vmr.solid_angle_sputter.fragment_density
                 )
     else:
         fs = FragmentSputterPolar(
@@ -88,7 +88,7 @@ def cartesian_sputter_from_polar(fsp: FragmentSputterPolar) -> FragmentSputterCa
     return FragmentSputterCartesian(xs=fsp.rs*np.sin(fsp.thetas), ys=fsp.rs*np.cos(fsp.thetas), fragment_density=fsp.fragment_density)
 
 
-def mirror_sputter(sp: FragmentSputterPolar | FragmentSputterCartesian) -> FragmentSputterPolar | FragmentSputterCartesian:
+def mirror_sputter(sp):
 
     if isinstance(sp, FragmentSputterPolar):
         sp.rs = np.append(sp.rs, sp.rs)
