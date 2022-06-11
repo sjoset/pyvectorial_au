@@ -751,7 +751,7 @@ def column_density_plot_3d(vmc: VectorialModelConfig, vmr: VectorialModelResult,
     return plt, fig, ax, surf
 
 
-def plot_fragment_sputter(fsc: FragmentSputterCartesian | FragmentSputterPolar, dist_units, sputter_units, within_r=None, trisurf=False, mirrored=False, show_plots=True, out_file=None):
+def plot_fragment_sputter(fsc, dist_units, sputter_units, within_r=None, trisurf=False, mirrored=False, show_plots=True, out_file=None):
 
     if mirrored:
         fsc = mirror_sputter(fsc)
