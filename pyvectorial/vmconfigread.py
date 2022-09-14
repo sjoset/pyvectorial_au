@@ -23,7 +23,7 @@ def vm_configs_from_yaml(filepath: str) -> list[VectorialModelConfig]:
     vmc = _vm_config_from_yaml(filepath, init_ratio=False)
 
     # holds a list of all combinations of changing parameters in vmc,
-    # values given as lists instead of single values
+    # values given as lists in the yaml instead of single values
     varying_parameters = []
 
     # list of VectorialModelConfigs built from these changing parameters
