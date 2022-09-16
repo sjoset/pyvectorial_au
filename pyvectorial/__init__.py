@@ -3,10 +3,10 @@ from .fortran_version import run_fortran_vmodel, get_result_from_fortran
 
 from .timedependentproduction import TimeDependentProduction
 
-from .utils import print_binned_times, print_radial_density, print_column_density, show_fragment_agreement, show_aperture_checks
+from .utils import print_binned_times, print_volume_density, print_column_density, show_fragment_agreement, show_aperture_checks
 
 # TODO: rewrite
-from .vmplotter import radial_density_plots, column_density_plots, column_density_plot_3d, plot_fragment_sputter, plot_sputters, radial_density_plots_fortran
+from .vmplotter import volume_density_plot, volume_density_interpolation_plot, column_density_plot, column_density_interpolation_plot, column_density_plot_3d, fragment_sputter_contour_plot, fragment_sputter_plot
 
 from .vmreader import read_results
 from .vmwriter import save_results

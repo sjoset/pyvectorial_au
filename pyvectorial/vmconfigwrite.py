@@ -18,7 +18,7 @@ def vm_config_to_yaml_file(vmc: VectorialModelConfig, filepath: str) -> None:
             print(exc)
 
 
-def _strip_of_units(vmc_old: VectorialModelConfig):
+def _strip_of_units(vmc_old: VectorialModelConfig) -> VectorialModelConfig:
     # TODO: remove the float() calls once the bug in pyyaml writing decimal numbers is fixed
     # https://github.com/yaml/pyyaml/issues/255
 

@@ -7,7 +7,7 @@ from .vmconfig import VectorialModelConfig
 from .vmresult import VectorialModelResult
 
 
-def print_radial_density(vmr: VectorialModelResult) -> None:
+def print_volume_density(vmr: VectorialModelResult) -> None:
     print("\n\nRadius (km) vs Fragment density (1/cm3)\n---------------------------------------")
     rgrid = vmr.volume_density_grid
     dens = vmr.volume_density
@@ -38,7 +38,7 @@ def show_fragment_agreement(vmr: VectorialModelResult) -> None:
     print(f"\tTotal number of fragments from density grid integration:\t {vmr.num_fragments_grid:.7e}")
 
 
-def show_aperture_checks(coma):
+def show_aperture_checks(coma) -> None:
 
     log.debug("Starting aperture checks ...")
     f_theory = coma.vmr.num_fragments_theory

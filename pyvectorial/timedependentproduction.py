@@ -46,7 +46,7 @@ class TimeDependentProduction:
             if t < t_start_in_secs and t > tend_in_secs:
                 return amplitude_in_invsecs
             else:
-                return 0
+                return 0.0
 
         return q_t
 
@@ -74,7 +74,12 @@ class TimeDependentProduction:
 
         def q_t(t):
             return amplitude_in_invsecs * (
-                    np.sin(const_B*(t + delta_in_secs)) + 1
+                    np.sin(const_B*(t + delta_in_secs))
                     )
+
+        # def q_t(t):
+        #     return amplitude_in_invsecs * (
+        #             np.sin(const_B*(t + delta_in_secs)) + 1
+        #             )
 
         return q_t

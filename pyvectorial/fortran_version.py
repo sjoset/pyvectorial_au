@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import logging as log
+import pathlib
 
 import numpy as np
 import astropy.units as u
@@ -18,7 +19,7 @@ from .vmresult import VectorialModelResult, FragmentSputterPolar
 """
 
 
-def run_fortran_vmodel(vmc: VectorialModelConfig) -> None:
+def run_fortran_vmodel(vmc: VectorialModelConfig, fortran_bin_path: pathlib.Path) -> None:
 
     """
         Given path to fortran binary, runs it by sending it the correct keystrokes
@@ -27,18 +28,17 @@ def run_fortran_vmodel(vmc: VectorialModelConfig) -> None:
     log.debug("Writing file to feed fortran vectorial model...")
     _produce_fortran_fparam(vmc)
 
-    fortran_vmodel_binary = vmc.etc['vmodel_binary']
-    log.info("Running fortran version at %s ...", fortran_vmodel_binary)
+    log.info("Running fortran version at %s ...", fortran_bin_path)
 
     # my vm.f consumes 14 enters before the calculation
     enter_key_string = "\n" * 14
     p1 = subprocess.Popen(["echo", enter_key_string], stdout=subprocess.PIPE)
-    p2 = subprocess.run(f"{fortran_vmodel_binary}", stdin=p1.stdout, stdout=open(os.devnull, 'wb'))
+    p2 = subprocess.run(f"{fortran_bin_path}", stdin=p1.stdout, stdout=open(os.devnull, 'wb'))
 
     log.info("fortran run complete, return code %s", p2.returncode)
 
 
-def get_result_from_fortran(fort16_file: str, read_sputter: bool = True) -> VectorialModelResult:
+def get_result_from_fortran(fort16_file: pathlib.Path, read_sputter: bool = True) -> VectorialModelResult:
 
     """
         Takes the output of the fortran code in fort16_file and returns VectorialModelResult
@@ -48,8 +48,8 @@ def get_result_from_fortran(fort16_file: str, read_sputter: bool = True) -> Vect
     fort16_voldens = range(14, 27)
     # Column density is on line 53 - 70
     fort16_coldens = range(52, 70)
-    # sputter array starts at line 175 through to the end
-    fort16_sputter = 175
+    # sputter array starts at line 177 through to the end
+    fort16_sputter = 176
 
     vdg = []
     vd = []
@@ -81,7 +81,7 @@ def get_result_from_fortran(fort16_file: str, read_sputter: bool = True) -> Vect
     nfg_line = fort_header[28]
     nfg = float(re.search('COMA: (.*)$', nfg_line).group(1))
     cr_line = fort_header[7]
-    cr = float(re.search('RCOMA=(.*)\(KM\)', cr_line).group(1)) * u.km
+    cr = float(re.search(r'RCOMA=(.*)\(KM\)', cr_line).group(1)) * u.km
 
     # fortran outputs are in these units
     vdg *= u.km
@@ -89,8 +89,8 @@ def get_result_from_fortran(fort16_file: str, read_sputter: bool = True) -> Vect
     vd *= 1/u.cm**3
     cd *= 1/u.cm**2
 
+    # print(sputter)
     sputter = np.array(sputter).astype(float)
-    # sputter = sputter.astype(float)
     rs = sputter[:, 0] * u.km
     thetas = sputter[:, 1]
     fragment_density = sputter[:, 2] / u.cm**3
