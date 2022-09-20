@@ -33,7 +33,7 @@ mywhite = "#d8d7dc"
 mybwhite = "#e7e7ea"
 
 
-def find_cdens_inflection_points(vmr: VectorialModelResult) -> np.ndarray:
+def _find_cdens_inflection_points(vmr: VectorialModelResult) -> np.ndarray:
     """
         Look for changes in sign of second derivative of the column density,
         given a VectorialModelResult and return a list of inflection points
@@ -65,20 +65,20 @@ def find_cdens_inflection_points(vmr: VectorialModelResult) -> np.ndarray:
     return inflection_points
 
 
-def mark_inflection_points(vmr: VectorialModelResult, ax, **kwargs) -> None:
+def mpl_mark_inflection_points(vmr: VectorialModelResult, ax, **kwargs) -> None:
 
     # Find possible inflection points
-    for ipoint in find_cdens_inflection_points(vmr):
+    for ipoint in _find_cdens_inflection_points(vmr):
         ax.axvline(x=ipoint, **kwargs)
 
 
-def mark_collision_sphere(vmr: VectorialModelResult, ax, **kwargs) -> None:
+def mpl_mark_collision_sphere(vmr: VectorialModelResult, ax, **kwargs) -> None:
 
     # Mark the beginning of the collision sphere
     ax.axvline(x=vmr.collision_sphere_radius, **kwargs)
 
 
-def volume_density_plot(vmr: VectorialModelResult, ax, r_units=u.m, vdens_units=1/u.m**3, **kwargs) -> None:
+def mpl_volume_density_plot(vmr: VectorialModelResult, ax, r_units=u.m, vdens_units=1/u.m**3, **kwargs) -> None:
 
     xs = vmr.volume_density_grid.to(r_units)
     ys = vmr.volume_density.to(vdens_units)
@@ -86,14 +86,14 @@ def volume_density_plot(vmr: VectorialModelResult, ax, r_units=u.m, vdens_units=
     ax.scatter(xs, ys, **kwargs)
 
 
-def volume_density_interpolation_plot(vmr: VectorialModelResult, ax, r_units=u.m, vdens_units=1/u.m**3, **kwargs) -> None:
+def mpl_volume_density_interpolation_plot(vmr: VectorialModelResult, ax, r_units=u.m, vdens_units=1/u.m**3, **kwargs) -> None:
 
     # model's interpolation function needs meters in, gives output in 1/m**3
     ys = vmr.volume_density_interpolation(vmr.volume_density_grid.to_value(u.m))/u.m**3
     ax.plot(vmr.volume_density_grid.to(r_units), ys.to(vdens_units), **kwargs)
 
 
-def column_density_plot(vmr: VectorialModelResult, ax, r_units=u.m, cdens_units=1/u.m**2, **kwargs) -> None:
+def mpl_column_density_plot(vmr: VectorialModelResult, ax, r_units=u.m, cdens_units=1/u.m**2, **kwargs) -> None:
 
     xs = vmr.column_density_grid.to(r_units)
     ys = vmr.column_density.to(cdens_units)
@@ -101,14 +101,14 @@ def column_density_plot(vmr: VectorialModelResult, ax, r_units=u.m, cdens_units=
     ax.scatter(xs, ys, **kwargs)
 
 
-def column_density_interpolation_plot(vmr: VectorialModelResult, ax, r_units=u.m, cdens_units=1/u.m**2, **kwargs) -> None:
+def mpl_column_density_interpolation_plot(vmr: VectorialModelResult, ax, r_units=u.m, cdens_units=1/u.m**2, **kwargs) -> None:
 
     # model's interpolation function needs meters in, gives output in 1/m**2
     ys = vmr.column_density_interpolation(vmr.column_density_grid.to_value(u.m))/u.m**2
     ax.plot(vmr.column_density_grid.to(r_units), ys.to(cdens_units), **kwargs)
 
 
-def column_density_plot_3d(vmr: VectorialModelResult, ax, center=(0,0)*u.m, width=200000*u.km, height=200000*u.km, divisions=100, dist_units=u.m, cdens_units=1/u.m**2, **kwargs) -> None:
+def mpl_column_density_plot_3d(vmr: VectorialModelResult, ax, center=(0,0)*u.m, width=200000*u.km, height=200000*u.km, divisions=100, dist_units=u.m, cdens_units=1/u.m**2, **kwargs) -> None:
 
     xmin_m, ymin_m = np.subtract(center.to_value(u.m), (width.to_value(u.m)/2, height.to_value(u.m)/2))
     xmax_m, ymax_m = np.add((xmin_m, ymin_m), (width.to_value(u.m), height.to_value(u.m)))
@@ -126,7 +126,7 @@ def column_density_plot_3d(vmr: VectorialModelResult, ax, center=(0,0)*u.m, widt
     ax.set_zlim(bottom=0)
 
 
-def fragment_sputter_contour_plot(vmr, ax, dist_units=u.km, sputter_units=1/u.cm**3, within_r=1000*u.km, mirrored=False, show_outflow_axis=True, **kwargs) -> None:
+def mpl_fragment_sputter_contour_plot(vmr, ax, dist_units=u.km, sputter_units=1/u.cm**3, within_r=1000*u.km, mirrored=False, show_outflow_axis=True, **kwargs) -> None:
 
     fsc = vmr.fragment_sputter
 
@@ -160,7 +160,7 @@ def fragment_sputter_contour_plot(vmr, ax, dist_units=u.km, sputter_units=1/u.cm
     ax.set_aspect('equal')
 
 
-def fragment_sputter_plot(vmr, ax, dist_units=u.m, sputter_units=1/u.m**3, within_r=1000*u.km, mirrored=False, show_outflow_axis=True, **kwargs) -> None:
+def mpl_fragment_sputter_plot(vmr, ax, dist_units=u.m, sputter_units=1/u.m**3, within_r=1000*u.km, mirrored=False, show_outflow_axis=True, **kwargs) -> None:
 
     fsc = vmr.fragment_sputter
 

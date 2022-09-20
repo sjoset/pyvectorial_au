@@ -6,7 +6,8 @@ from .timedependentproduction import TimeDependentProduction
 from .utils import print_binned_times, print_volume_density, print_column_density, show_fragment_agreement, show_aperture_checks
 
 # TODO: rewrite
-from .vmplotter import volume_density_plot, volume_density_interpolation_plot, column_density_plot, column_density_interpolation_plot, column_density_plot_3d, fragment_sputter_contour_plot, fragment_sputter_plot
+from .vm_matplotlib import mpl_mark_inflection_points, mpl_mark_collision_sphere, mpl_volume_density_plot, mpl_volume_density_interpolation_plot, mpl_column_density_plot, mpl_column_density_interpolation_plot, mpl_column_density_plot_3d, mpl_fragment_sputter_contour_plot, mpl_fragment_sputter_plot
+from .vm_plotly import plotly_volume_density_plot, plotly_volume_density_interpolation_plot, plotly_column_density_plot, plotly_column_density_interpolation_plot, plotly_column_density_plot_3d, plotly_fragment_sputter_plot, plotly_fragment_sputter_contour_plot, plotly_q_t_plot
 
 from .vmreader import read_results
 from .vmwriter import save_results
