@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import copy
 import astropy.units as u
 import scipy.interpolate
 import plotly.graph_objects as go
@@ -169,7 +170,7 @@ def plotly_fragment_sputter_contour_plot(vmr, dist_units=u.km, sputter_units=1/u
 
 def plotly_fragment_sputter_plot(vmr, dist_units=u.m, sputter_units=1/u.m**3, within_r=1000*u.km, mirrored=False, show_outflow_axis=True, **kwargs) -> Tuple[go.Contour, go.Scatter, float]:
 
-    fsc = vmr.fragment_sputter
+    fsc = copy.deepcopy(vmr.fragment_sputter)
 
     if mirrored:
         fsc = mirror_sputter(fsc)
