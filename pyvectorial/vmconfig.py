@@ -4,6 +4,15 @@ import astropy.units as u
 from dataclasses import dataclass
 
 
+"""
+    Main VectorialModelConfig dataclass to hold the input parameters that are handed off to sbpy's
+    VectorialModel or Festou's original Fortran
+
+    Built from smaller component dataclasses that specify information about the parents, fragments,
+    outflow, etc.
+"""
+
+
 @dataclass
 class Production:
     base_q: u.quantity.Quantity

@@ -4,7 +4,7 @@
 - dill
 - plotly
 - matplotlib
-- pandas
+- numpy
 
 # Installation
 Install with `pip install .` or `pip install -e .` for development
@@ -13,4 +13,4 @@ Install with `pip install .` or `pip install -e .` for development
 `pytest`
 
 ## Coverage Report
-`pytest --cov-report term-missing --cov=pyvectorial pyvectorial/tests
+`pytest --cov-report term-missing --cov=pyvectorial pyvectorial/tests`

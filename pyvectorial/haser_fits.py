@@ -12,32 +12,11 @@ from functools import partial
 from .haser_params import HaserParams
 
 
-@dataclass
-class HaserFitResult:
-	fitting_function: None = None
-	fitted_params: List = None
-	covariances: List = None
+"""
+	Functions for taking column density data as a function or radius and fitting to a Haser model
 
-
-@dataclass
-class HaserScaleLengthSearchResult:
-    # regular arrays
-    parent_gammas: np.array = None
-    fragment_gammas: np.array = None
-    fitted_qs: np.array = None
-
-    # meshgrids
-    p_mesh: np.array = None
-    f_mesh: np.array = None
-    q_mesh: np.array = None
-
-    # measure of agreement on total production
-    # 0 is best: 'distance' of fitted production away from vectorial production
-    agreements: np.array = None
-    a_mesh: np.array = None
-
-    # best fits for this search
-    best_params: HaserParams = None
+	Implemented: Finding best-fit Q for Haser model given HaserParams (scale lengths, outflow velocity)
+"""
 
 
 def _haser_column_density(rho_m, q_s, v_ms, p_m, f_m) -> Callable:
@@ -67,8 +46,22 @@ def _make_haser_column_density_q(hps: HaserParams) -> Callable:
 	return f
 
 
+"""
+	Dataclass for returning the results of a fit of Haser model column density with data
+"""
+@dataclass
+class HaserFitResult:
+	# Function that was fitted
+	fitting_function: None = None
+	# np.ndarray of best-fit parameters
+	fitted_params: List = None
+	# np.ndarry of parameter covariances
+	covariances: List = None
+
+
 def haser_q_fit(q_guess: u.Quantity, hps: HaserParams, rs: np.ndarray, cds: np.ndarray) -> HaserFitResult:
 
+	# We're performing the fit to find Q, so warn if the user filled in a value for Q already
     if hps.q is not None:
         print("Warning: do_haser_q_fit received non-empty production in HaserParams")
 
@@ -90,9 +83,34 @@ def haser_full_fit(q_guess, v_guess, parent_guess, fragment_guess, rs, cds):
     return HaserFitResult(fitting_function=hcd, fitted_params=popt, covariances=pcov)
 
 
+"""
+	Dataclass for compiling results of which parent, fragment scale length pair best match
+	a given vectorial model result, with 'match' meaning they agree on the production
+"""
+@dataclass
+class HaserScaleLengthSearchResult:
+    # regular arrays
+    parent_gammas: np.array = None
+    fragment_gammas: np.array = None
+    fitted_qs: np.array = None
+
+    # meshgrids
+    p_mesh: np.array = None
+    f_mesh: np.array = None
+    q_mesh: np.array = None
+
+    # measure of agreement on total production
+    # 0 is best: 'distance' of fitted production away from vectorial production
+    agreements: np.array = None
+    a_mesh: np.array = None
+
+    # best fits for this search
+    best_params: HaserParams = None
+
+
 def find_best_haser_scale_lengths_q(vmc, vmr, parent_gammas: np.array, fragment_gammas: np.array) -> HaserScaleLengthSearchResult:
 
-    # takes a finished vectorial model, fits Haser models of various scale lengths,
+    # Takes a finished vectorial model, fits Haser models of various scale lengths,
     # and looks for the (parent, fragment) scale length pair that agrees with the vectorial model's
     # input production
 

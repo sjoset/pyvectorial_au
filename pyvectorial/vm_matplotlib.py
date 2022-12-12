@@ -10,15 +10,12 @@ from matplotlib.colors import Normalize
 
 from .vmresult import VectorialModelResult, FragmentSputterPolar, cartesian_sputter_from_polar, mirror_sputter
 
-# solarbluecol = np.array([38, 139, 220]) / 255.
-# solarblue = (solarbluecol[0], solarbluecol[1], solarbluecol[2], 1)
-# solargreencol = np.array([133, 153, 0]) / 255.
-# solargreen = (solargreencol[0], solargreencol[1], solargreencol[2], 1)
-# solarblackcol = np.array([0, 43, 54]) / 255.
-# solarblack = (solarblackcol[0], solarblackcol[1], solarblackcol[2], 1)
-# solarwhitecol = np.array([238, 232, 213]) / 255.
-# solarwhite = (solarblackcol[0], solarblackcol[1], solarblackcol[2], 1)
 
+"""
+    Functions for using matplotlib to plot various data contained in VectorialModelResults
+"""
+
+# color palette
 myred = "#c74a77"
 mybred = "#dbafad"
 mygreen = "#afac7c"
@@ -39,12 +36,11 @@ def _find_cdens_inflection_points(vmr: VectorialModelResult) -> np.ndarray:
         given a VectorialModelResult and return a list of inflection points
     """
 
+    # choose a sample of radii to test for changes in sign of second derivative
     xs = np.linspace(0, 5e8, num=100)
     concavity = vmr.column_density_interpolation.derivative(nu=2)
+    # compute values of the second derivative at our sample points
     ys = concavity(xs)
-
-    # for pair in zip(xs, ys):
-    #     print(f"R: {pair[0]:08.1e}\t\tConcavity: {pair[1]:8.8f}")
 
     # Array of 1s or 0s marking if the sign changed from one element to the next
     sign_changes = (np.diff(np.sign(ys)) != 0)*1
@@ -61,13 +57,14 @@ def _find_cdens_inflection_points(vmr: VectorialModelResult) -> np.ndarray:
     csphere_radius = vmr.collision_sphere_radius.to_value(u.m)
     inflection_points = inflection_points[inflection_points > csphere_radius]
 
+    # our model's interpolator function deals in meters, so tag results with the proper units
     inflection_points = inflection_points * u.m
     return inflection_points
 
 
 def mpl_mark_inflection_points(vmr: VectorialModelResult, ax, **kwargs) -> None:
 
-    # Find possible inflection points
+    # Find possible inflection points in the column density
     for ipoint in _find_cdens_inflection_points(vmr):
         ax.axvline(x=ipoint, **kwargs)
 
@@ -78,6 +75,7 @@ def mpl_mark_collision_sphere(vmr: VectorialModelResult, ax, **kwargs) -> None:
     ax.axvline(x=vmr.collision_sphere_radius, **kwargs)
 
 
+# ax is an axis from a matplotlib figure
 def mpl_volume_density_plot(vmr: VectorialModelResult, ax, r_units=u.m, vdens_units=1/u.m**3, **kwargs) -> None:
 
     xs = vmr.volume_density_grid.to(r_units)
@@ -192,53 +190,3 @@ def mpl_fragment_sputter_plot(vmr, ax, dist_units=u.m, sputter_units=1/u.m**3, w
         ax.plot(origin, outflow_max, color=myblue, lw=2, label='outflow axis')
 
     ax.scatter(xs, ys, zs, c=kwargs.get('color', scalarMap.to_rgba(zs.value)))
-
-
-# def old_column_density_plot_3d(vmc: VectorialModelConfig, vmr: VectorialModelResult,
-#         x_min, x_max, y_min, y_max, grid_step_x, grid_step_y, r_units,
-#         cd_units, view_angles=(90, 90), show_plots=True, out_file=None,
-#         vmin=None, vmax=None):
-#     """ Plot the column density in 2d around nucleus, with column density as z axis """
-#
-#     # TODO: this only supports python version
-#
-#     x = np.linspace(x_min.to(u.m).value, x_max.to(u.m).value, grid_step_x)
-#     y = np.linspace(y_min.to(u.m).value, y_max.to(u.m).value, grid_step_y)
-#     xv, yv = np.meshgrid(x, y)
-#     z = vmr.column_density_interpolation(np.sqrt(xv**2 + yv**2))
-#     # column_density_interpolation spits out m^-2
-#     fz = (z/u.m**2).to(cd_units)
-#
-#     xu = np.linspace(x_min.to(r_units), x_max.to(r_units), grid_step_x)
-#     yu = np.linspace(y_min.to(r_units), y_max.to(r_units), grid_step_y)
-#     xvu, yvu = np.meshgrid(xu, yu)
-#
-#     plt.style.use('Solarize_Light2')
-#     plt.style.use('dark_background')
-#     plt.rcParams['grid.color'] = "black"
-#
-#     fig = plt.figure(figsize=(20, 20))
-#     ax = plt.axes(projection='3d')
-#     # ax.grid(False)
-#     surf = ax.plot_surface(xvu, yvu, fz, cmap='inferno', vmin=vmin, vmax=vmax, edgecolor='none')
-#
-#     plt.gca().set_zlim(bottom=0)
-#
-#     ax.set_xlabel(f'Distance, ({r_units.to_string()})')
-#     ax.set_ylabel(f'Distance, ({r_units.to_string()})')
-#     ax.set_zlabel(f"Column density, {cd_units.unit.to_string()}")
-#     plt.title(f"Calculated column density of {vmc.fragment.name}")
-#
-#     ax.w_xaxis.set_pane_color(solargreen)
-#     ax.w_yaxis.set_pane_color(solarblue)
-#     ax.w_zaxis.set_pane_color(solarblack)
-#
-#     fig.colorbar(surf, shrink=0.5, aspect=5)
-#     ax.view_init(view_angles[0], view_angles[1])
-#
-#     if out_file is not None:
-#         plt.savefig(out_file)
-#     if show_plots:
-#         plt.show()
-#
-#     return plt, fig, ax, surf

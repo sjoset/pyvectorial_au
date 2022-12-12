@@ -12,6 +12,12 @@ from .vmconfig import VectorialModelConfig, Production, Parent, Fragment, Comet,
 from .input_transforms import apply_input_transform
 
 
+"""
+    Functionality for taking a YAML file and constructing a list of VectorialModelConfigs specified
+    by the contents of the YAML
+"""
+
+
 def vm_configs_from_yaml(filepath: str) -> list[VectorialModelConfig]:
 
     """

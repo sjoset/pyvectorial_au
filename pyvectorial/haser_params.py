@@ -6,6 +6,9 @@ from dataclasses import dataclass
 from .vmconfig import VectorialModelConfig
 
 
+"""
+    Like VectorialModelConfig, serves as the standard input data structure, but for Haser models
+"""
 @dataclass
 class HaserParams:
     # total parent production, ~ 1/u.s
@@ -18,6 +21,7 @@ class HaserParams:
     gamma_d: u.Quantity
 
 
+# TODO: move this somewhere else
 def haser_from_vectorial_cd1980(vmc: VectorialModelConfig) -> HaserParams:
 
     # use relations in Combi & Delsemme 1980 to translate vectorial parameters
@@ -38,4 +42,7 @@ def haser_from_vectorial_cd1980(vmc: VectorialModelConfig) -> HaserParams:
 
     v_d_h = (v_d * gamma_d_h)/gamma_d
 
+    # TODO: does the paper give a formula for the production, or should we use the same production as went
+    # into the vectorial model?  If we fit this new haser and find the best Q, does it match the vectorial?
+    # We return None for the production because ... ?
     return HaserParams(q=None, v_outflow=v_d_h, gamma_p=gamma_p_h, gamma_d=gamma_d_h)

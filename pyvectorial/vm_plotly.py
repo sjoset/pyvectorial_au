@@ -8,21 +8,13 @@ import plotly.graph_objects as go
 from typing import Tuple
 from sbpy.activity import VectorialModel
 
-# import matplotlib.pyplot as plt
-# import matplotlib.cm as cmx
-# from matplotlib.colors import Normalize
-
 from .vmresult import VectorialModelResult, FragmentSputterPolar, cartesian_sputter_from_polar, mirror_sputter
 
-# solarbluecol = np.array([38, 139, 220]) / 255.
-# solarblue = (solarbluecol[0], solarbluecol[1], solarbluecol[2], 1)
-# solargreencol = np.array([133, 153, 0]) / 255.
-# solargreen = (solargreencol[0], solargreencol[1], solargreencol[2], 1)
-# solarblackcol = np.array([0, 43, 54]) / 255.
-# solarblack = (solarblackcol[0], solarblackcol[1], solarblackcol[2], 1)
-# solarwhitecol = np.array([238, 232, 213]) / 255.
-# solarwhite = (solarblackcol[0], solarblackcol[1], solarblackcol[2], 1)
+"""
+    Functions for using plotly to plot various data contained in VectorialModelResults
+"""
 
+# color palette
 myred = "#c74a77"
 mybred = "#dbafad"
 mygreen = "#afac7c"
@@ -36,50 +28,8 @@ mybblack = "#82787f"
 mywhite = "#d8d7dc"
 mybwhite = "#e7e7ea"
 
-
-# def _find_cdens_inflection_points(vmr: VectorialModelResult) -> np.ndarray:
-#     """
-#         Look for changes in sign of second derivative of the column density,
-#         given a VectorialModelResult and return a list of inflection points
-#     """
-#
-#     xs = np.linspace(0, 5e8, num=100)
-#     concavity = vmr.column_density_interpolation.derivative(nu=2)
-#     ys = concavity(xs)
-#
-#     # for pair in zip(xs, ys):
-#     #     print(f"R: {pair[0]:08.1e}\t\tConcavity: {pair[1]:8.8f}")
-#
-#     # Array of 1s or 0s marking if the sign changed from one element to the next
-#     sign_changes = (np.diff(np.sign(ys)) != 0)*1
-#
-#     # Manually remove the weirdness near the nucleus and rezize the array
-#     sign_changes[0] = 0
-#     sign_changes = np.resize(sign_changes, 100)
-#
-#     inflection_points = xs*sign_changes
-#     # Only want non-zero elements
-#     inflection_points = inflection_points[inflection_points > 0]
-#
-#     # Only want inflection points outside the collision sphere
-#     csphere_radius = vmr.collision_sphere_radius.to_value(u.m)
-#     inflection_points = inflection_points[inflection_points > csphere_radius]
-#
-#     inflection_points = inflection_points * u.m
-#     return inflection_points
-
-
-# def plotly_mark_inflection_points(vmr: VectorialModelResult, ax, **kwargs) -> None:
-#
-#     # Find possible inflection points
-#     for ipoint in _find_cdens_inflection_points(vmr):
-#         ax.axvline(x=ipoint, **kwargs)
-
-
-# def plotly_mark_collision_sphere(vmr: VectorialModelResult, ax, **kwargs) -> None:
-#
-#     # Mark the beginning of the collision sphere
-#     ax.axvline(x=vmr.collision_sphere_radius, **kwargs)
+# TODO: port over the column density inflection point marker in the matplotlib version?  Collision sphere marker
+# function as well?
 
 
 def plotly_volume_density_plot(vmr: VectorialModelResult, dist_units=u.m, vdens_units=1/u.m**3, **kwargs) -> go.Scatter:
@@ -136,7 +86,7 @@ def plotly_column_density_plot_3d(vmr: VectorialModelResult, center=(0,0)*u.km, 
 
 def plotly_fragment_sputter_contour_plot(vmr, dist_units=u.km, sputter_units=1/u.cm**3, within_r=10000*u.km, mirrored=False, show_outflow_axis=True, **kwargs) -> Tuple[go.Contour, go.Scatter, float]:
 
-    fsc = vmr.fragment_sputter
+    fsc = copy.deepcopy(vmr.fragment_sputter)
 
     if mirrored:
         fsc = mirror_sputter(fsc)

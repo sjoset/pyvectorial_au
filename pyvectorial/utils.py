@@ -7,6 +7,11 @@ from .vmconfig import VectorialModelConfig
 from .vmresult import VectorialModelResult
 
 
+"""
+    Utility functions that probably don't belong in this library but are quick and simple for spitting
+    out model results while testing, so here they are for now
+"""
+
 def print_volume_density(vmr: VectorialModelResult) -> None:
     print("\n\nRadius (km) vs Fragment density (1/cm3)\n---------------------------------------")
     rgrid = vmr.volume_density_grid
@@ -46,7 +51,7 @@ def show_aperture_checks(coma) -> None:
     # use various large apertures to see how much we recover
     # ap1 = sba.RectangularAperture((coma.vmr.max_grid_radius.value, coma.vmr.max_grid_radius.value) * u.m)
     ap2 = sba.CircularAperture((coma.vmr.max_grid_radius.value) * u.m)
-    ap3 = sba.AnnularAperture([500000, coma.vmr.max_grid_radius.value] * u.m)
+    ap3 = sba.AnnularAperture([500000, coma.vmr.max_grid_radius.to_value(u.m)] * u.m)
 
     # rect_result = coma.total_number(ap1)*100/f_theory
     circular_result = coma.total_number(ap2)*100/f_theory
@@ -55,4 +60,4 @@ def show_aperture_checks(coma) -> None:
     print("\nPercent of fragments recovered by integrating column density over")
     # print(f"\tLarge rectangular aperture:\t\t\t\t\t\t{rect_result:2.2f}%")
     print(f"\tLarge circular aperture:\t\t\t\t\t\t{circular_result:2.2f}%")
-    print(f"\tAnnular aperture, inner radius 500000 km, outer radius of entire grid:\t{annular_result:2.2f}%")
+    print(f"\tAnnular aperture, inner radius 500000 m, outer radius of entire grid:\t{annular_result:2.2f}%")

@@ -7,6 +7,16 @@ import numpy as np
 from .vmconfig import VectorialModelConfig
 
 
+"""
+    Different papers and researchers take different approaches to scaling parameters with heliocentric distance.
+
+    These functions provide some of the common ones dealt with during testing of the vectorial model, as well as
+    functions to undo the scaling to recover the original set of parameters.
+
+    The given VectorialModelConfig is modified in-place, a new copy is not returned
+"""
+
+
 def apply_input_transform(vmc: VectorialModelConfig) -> None:
 
     log.debug("Current transform state: %s", vmc.comet.transform_applied)

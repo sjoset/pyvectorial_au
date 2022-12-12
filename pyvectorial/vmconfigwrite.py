@@ -7,6 +7,12 @@ from dataclasses import asdict
 from .vmconfig import VectorialModelConfig
 
 
+"""
+    Functionality for taking a VectorialModelConfig and producing a YAML file storing the config.
+    Paired with vm_configs_from_yaml, this can save/load model configurations for inspection or re-use later.
+"""
+
+
 def vm_config_to_yaml_file(vmc: VectorialModelConfig, filepath: str) -> None:
 
     vmc_to_write = _strip_of_units(vmc)
@@ -18,6 +24,10 @@ def vm_config_to_yaml_file(vmc: VectorialModelConfig, filepath: str) -> None:
             print(exc)
 
 
+"""
+    The python-supplied YAML library doesn't currently work with astropy's unit system, so we have to
+    convert the quantities manually for storage before writing.
+"""
 def _strip_of_units(vmc_old: VectorialModelConfig) -> VectorialModelConfig:
     # TODO: remove the float() calls once the bug in pyyaml writing decimal numbers is fixed
     # https://github.com/yaml/pyyaml/issues/255

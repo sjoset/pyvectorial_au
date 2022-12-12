@@ -6,7 +6,13 @@ import sbpy.activity as sba
 
 from matplotlib import cm
 from .haser_params import HaserParams
-from .haser_fits import HaserScaleLengthSearchResult, haser_q_fit
+from .haser_fits import HaserScaleLengthSearchResult
+# from .haser_fits import HaserScaleLengthSearchResult, haser_q_fit
+
+
+"""
+    Utility functions for Haser-related plotting
+"""
 
 
 def plot_haser_column_density(hps: HaserParams, ax: plt.Axes, rs: np.ndarray) -> None:

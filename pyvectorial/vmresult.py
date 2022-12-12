@@ -7,7 +7,18 @@ from dataclasses import dataclass
 from scipy.interpolate import PPoly
 from astropy.units.quantity import Quantity
 
+"""
+    Defines VectorialModelResult, a dataclass for holding the result of either sbpy's VectorialModel or
+    Festou's fortran version.  Functions written to handle VectorialModelResult don't need to care which model
+    generated the results.
 
+    Defines helper function to pull results out of sbpy model and stuff them into a VectorialModelResult.
+    Functionality for taking a Fortran model result and producing a VectorialModelResult is provided in
+    fortran_version.py
+"""
+
+
+# Dataclasses for the two-dimensional fragment sputter information obtained from the model
 @dataclass
 class FragmentSputterPolar:
     rs: np.ndarray
@@ -42,6 +53,7 @@ class VectorialModelResult:
     num_fragments_grid: float = None
 
 
+# Take a model run with sbpy and construct results
 def get_result_from_coma(coma_orig: sba.VectorialModel, solid_angle_sputter: bool = True) -> VectorialModelResult:
     
     coma = copy.deepcopy(coma_orig)

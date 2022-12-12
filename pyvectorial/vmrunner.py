@@ -8,6 +8,15 @@ from .timedependentproduction import TimeDependentProduction
 from .vmconfig import VectorialModelConfig
 
 
+"""
+    Takes a VectorialModelConfig, translates it for sbpy's VectorialModel, and returns the completed
+    VectorialModel coma object.
+
+    The vectorial model provided in sbpy offers two distinct methods for specifying time-dependent
+    production, so we handle those cases here when calling it.
+"""
+
+
 def run_vmodel(vmc: VectorialModelConfig) -> sba.VectorialModel:
 
     """

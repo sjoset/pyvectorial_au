@@ -11,6 +11,8 @@ class TimeDependentProduction:
 
         Create the class by passing it a supported type, and get the time function
         by calling create_production
+
+        Currently supported: square pulses, gaussians, and sine waves
     """
 
     def __init__(self, type):
@@ -56,7 +58,7 @@ class TimeDependentProduction:
         std_dev_in_secs = self.std_dev.to(u.s).value
         amplitude_in_invsecs = self.amplitude.to(1/(u.s)).value
 
-        log.debug("Building gaussion q_t:\tAmplitude: %s, t_max: %s, std_dev: %s", self.amplitude, self.t_max, self.std_dev)
+        log.debug("Building gaussian q_t:\tAmplitude: %s, t_max: %s, std_dev: %s", self.amplitude, self.t_max, self.std_dev)
 
         def q_t(t):
             return amplitude_in_invsecs * np.e**-(((t - t_max_in_secs)**2)/(2*std_dev_in_secs**2))
@@ -76,10 +78,5 @@ class TimeDependentProduction:
             return amplitude_in_invsecs * (
                     np.sin(const_B*(t + delta_in_secs))
                     )
-
-        # def q_t(t):
-        #     return amplitude_in_invsecs * (
-        #             np.sin(const_B*(t + delta_in_secs)) + 1
-        #             )
 
         return q_t

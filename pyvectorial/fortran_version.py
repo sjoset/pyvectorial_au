@@ -16,6 +16,8 @@ from .vmresult import VectorialModelResult, FragmentSputterPolar
 
 """
     For interfacing with the fortran version of the vectorial model, written by Festou, early 1980s
+
+    Takes a VectorialModelConfig and fills a VectorialModelResult based on its calculations
 """
 
 
@@ -109,7 +111,7 @@ def get_result_from_fortran(fort16_file: pathlib.Path, read_sputter: bool = True
 def _produce_fortran_fparam(vmc: VectorialModelConfig) -> None:
 
     """
-        Takes a valid python config and produces a valid fortran input file
+        Takes a valid python vectorial model config and produces a valid fortran input file
         as long as the production is steady
     """
 
@@ -119,7 +121,8 @@ def _produce_fortran_fparam(vmc: VectorialModelConfig) -> None:
 
     # TODO: binned time production should also be handled here, but fortran only supports 20 bins of time division
     #   so we would have to check if the input had 20 or less time bins first
-    # TODO: parent and fragment destruction levels are hard-coded to the defaults in the python version
+    # TODO: parent and fragment destruction levels are hard-coded to the defaults of the python model in sbpy so that
+    #   the calculations will match
     fparam_outfile = vmc.etc['in_file']
 
     with open(fparam_outfile, 'w') as out_file:
