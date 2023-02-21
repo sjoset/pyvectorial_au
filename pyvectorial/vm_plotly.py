@@ -133,6 +133,10 @@ def plotly_fragment_sputter_plot(vmr, dist_units=u.m, sputter_units=1/u.m**3, wi
     zs = fsc.fragment_density
 
     within_limit = np.sqrt(xs**2 + ys**2) < within_r
+    if not len(xs):
+        print("Radial cutoff for fragment sputter too small!  Nothing to plot.")
+        return (None, None, None)
+
     xs = xs[within_limit].to_value(dist_units)
     ys = ys[within_limit].to_value(dist_units)
     zs = zs[within_limit].to_value(sputter_units)

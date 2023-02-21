@@ -59,7 +59,10 @@ class HaserFitResult:
 	covariances: List = None
 
 
-def haser_q_fit(q_guess: u.Quantity, hps: HaserParams, rs: np.ndarray, cds: np.ndarray) -> HaserFitResult:
+def haser_q_fit_from_column_density(q_guess: u.Quantity, hps: HaserParams, rs: np.ndarray, cds: np.ndarray) -> HaserFitResult:
+
+	# Take HaserParams in hps along with a guess for Q to run Haser models until a best fit is found
+	# to the data in rs, cds
 
 	# We're performing the fit to find Q, so warn if the user filled in a value for Q already
     if hps.q is not None:
@@ -70,8 +73,10 @@ def haser_q_fit(q_guess: u.Quantity, hps: HaserParams, rs: np.ndarray, cds: np.n
     return HaserFitResult(fitting_function=hcd, fitted_params=popt, covariances=pcov)
 
 
-# TODO: test this
-def haser_full_fit(q_guess, v_guess, parent_guess, fragment_guess, rs, cds):
+def haser_full_fit_from_column_density(q_guess, v_guess, parent_guess, fragment_guess, rs, cds):
+
+	# given column density data in rs, cds, find the Haser parameter set that
+	# best fits the data
 
     qg = q_guess.to_value('1/s')
     vg = v_guess.to_value('m/s')

@@ -54,7 +54,7 @@ class VectorialModelResult:
 
 
 # Take a model run with sbpy and construct results
-def get_result_from_coma(coma_orig: sba.VectorialModel, solid_angle_sputter: bool = True) -> VectorialModelResult:
+def get_result_from_coma(coma_orig: sba.VectorialModel) -> VectorialModelResult:
     
     coma = copy.deepcopy(coma_orig)
     
@@ -65,18 +65,11 @@ def get_result_from_coma(coma_orig: sba.VectorialModel, solid_angle_sputter: boo
     vdi = coma.vmr.volume_density_interpolation
     cdi = coma.vmr.column_density_interpolation
 
-    if solid_angle_sputter:
-        fs = FragmentSputterPolar(
-                rs=coma.vmr.solid_angle_sputter.rs,
-                thetas=coma.vmr.solid_angle_sputter.thetas,
-                fragment_density=coma.vmr.solid_angle_sputter.fragment_density
-                )
-    else:
-        fs = FragmentSputterPolar(
-                rs=coma.vmr.fragment_sputter.rs,
-                thetas=coma.vmr.fragment_sputter.thetas,
-                fragment_density=coma.vmr.fragment_sputter.fragment_density
-                )
+    fs = FragmentSputterPolar(
+            rs=coma.vmr.fragment_sputter.rs,
+            thetas=coma.vmr.fragment_sputter.thetas,
+            fragment_density=coma.vmr.fragment_sputter.fragment_density
+            )
 
     nft = coma.vmr.num_fragments_theory
     nfg = coma.vmr.num_fragments_grid
