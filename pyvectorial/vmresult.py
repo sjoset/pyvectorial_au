@@ -1,4 +1,3 @@
-
 import copy
 import numpy as np
 import sbpy.activity as sba
@@ -55,9 +54,8 @@ class VectorialModelResult:
 
 # Take a model run with sbpy and construct results
 def get_result_from_coma(coma_orig: sba.VectorialModel) -> VectorialModelResult:
-    
     coma = copy.deepcopy(coma_orig)
-    
+
     vdg = coma.vmr.volume_density_grid
     vd = coma.vmr.volume_density
     cdg = coma.vmr.column_density_grid
@@ -66,41 +64,49 @@ def get_result_from_coma(coma_orig: sba.VectorialModel) -> VectorialModelResult:
     cdi = coma.vmr.column_density_interpolation
 
     fs = FragmentSputterPolar(
-            rs=coma.vmr.fragment_sputter.rs,
-            thetas=coma.vmr.fragment_sputter.thetas,
-            fragment_density=coma.vmr.fragment_sputter.fragment_density
-            )
+        rs=coma.vmr.fragment_sputter.rs,
+        thetas=coma.vmr.fragment_sputter.thetas,
+        fragment_density=coma.vmr.fragment_sputter.fragment_density,
+    )
 
     nft = coma.vmr.num_fragments_theory
     nfg = coma.vmr.num_fragments_grid
 
     csr = coma.vmr.collision_sphere_radius
     mgr = coma.vmr.max_grid_radius
-    cr  = coma.vmr.coma_radius
+    cr = coma.vmr.coma_radius
 
     return VectorialModelResult(
-            volume_density_grid=vdg, volume_density=vd,
-            column_density_grid=cdg, column_density=cd,
-            fragment_sputter=fs,
-            volume_density_interpolation=vdi, column_density_interpolation=cdi,
-            collision_sphere_radius=csr, max_grid_radius=mgr, coma_radius=cr,
-            num_fragments_theory=nft, num_fragments_grid=nfg
-            )
+        volume_density_grid=vdg,
+        volume_density=vd,
+        column_density_grid=cdg,
+        column_density=cd,
+        fragment_sputter=fs,
+        volume_density_interpolation=vdi,
+        column_density_interpolation=cdi,
+        collision_sphere_radius=csr,
+        max_grid_radius=mgr,
+        coma_radius=cr,
+        num_fragments_theory=nft,
+        num_fragments_grid=nfg,
+    )
 
 
 def cartesian_sputter_from_polar(fsp: FragmentSputterPolar) -> FragmentSputterCartesian:
-
-    return FragmentSputterCartesian(xs=fsp.rs*np.sin(fsp.thetas), ys=fsp.rs*np.cos(fsp.thetas), fragment_density=fsp.fragment_density)
+    return FragmentSputterCartesian(
+        xs=fsp.rs * np.sin(fsp.thetas),
+        ys=fsp.rs * np.cos(fsp.thetas),
+        fragment_density=fsp.fragment_density,
+    )
 
 
 def mirror_sputter(sp):
-
     if isinstance(sp, FragmentSputterPolar):
         sp.rs = np.append(sp.rs, sp.rs)
-        sp.thetas = np.append(sp.thetas, -1*sp.thetas)
+        sp.thetas = np.append(sp.thetas, -1 * sp.thetas)
         sp.fragment_density = np.append(sp.fragment_density, sp.fragment_density)
     elif isinstance(sp, FragmentSputterCartesian):
-        sp.xs = np.append(sp.xs, -1*sp.xs)
+        sp.xs = np.append(sp.xs, -1 * sp.xs)
         sp.ys = np.append(sp.ys, sp.ys)
         sp.fragment_density = np.append(sp.fragment_density, sp.fragment_density)
 

@@ -56,9 +56,16 @@ from .haser_fits import (
     haser_q_fit_from_column_density,
     haser_full_fit_from_column_density,
     find_best_haser_scale_lengths_q,
+    haser_params_from_full_fit_result,
 )
 from .haser_plots import plot_haser_column_density, haser_search_result_plot
 
 from .hashing import hash_vmc, pickle_to_base64, unpickle_from_base64
 
 from .coma_pickling import coma_from_dill, dill_from_coma
+
+from .calculation_table import (
+    build_calculation_table,
+    run_vmodel_timed,
+    add_vmc_columns,
+)
