@@ -1,10 +1,14 @@
 # Dependencies
-- sbpy
+## conda
 - pytest
 - dill
 - plotly
 - matplotlib
 - numpy
+
+## pip
+- sbpy
+- PyAbel
 
 # Installation
 Install with `pip install .` or `pip install -e .` for development

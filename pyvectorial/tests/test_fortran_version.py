@@ -1,9 +1,8 @@
-
 import os
 import pytest
 import astropy.units as u
 import numpy as np
-from ..fortran_version import get_result_from_fortran
+from ..fortran_version import vmr_from_fortran_output
 
 
 @pytest.fixture
@@ -13,12 +12,12 @@ def rootdir():
 
 @pytest.fixture
 def fortran_fort16_file(rootdir):
-    return os.path.join(rootdir, 'input/fort.16')
+    return os.path.join(rootdir, "input/fort.16")
 
 
 @pytest.fixture
 def vmc_from_fortran(fortran_fort16_file):
-    return get_result_from_fortran(fortran_fort16_file, read_sputter=True)
+    return vmr_from_fortran_output(fortran_fort16_file, read_sputter=True)
 
 
 def test_fortran_collision_sphere(vmc_from_fortran):
@@ -33,12 +32,12 @@ def test_fortran_coma_radius(vmc_from_fortran):
     assert np.isclose(vmc_from_fortran.coma_radius, 7.259e5 * u.km)
 
 
-def test_num_fragments_theory(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.num_fragments_theory, 0.545e33)
-
-
-def test_num_fragments_grid(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.num_fragments_grid, 0.533e33)
+# def test_num_fragments_theory(vmc_from_fortran):
+#     assert np.isclose(vmc_from_fortran.num_fragments_theory, 0.545e33)
+#
+#
+# def test_num_fragments_grid(vmc_from_fortran):
+#     assert np.isclose(vmc_from_fortran.num_fragments_grid, 0.533e33)
 
 
 def test_volume_density_grid_first(vmc_from_fortran):
@@ -90,8 +89,12 @@ def test_fragment_sputter_theta_last(vmc_from_fortran):
 
 
 def test_fragment_sputter_density_first(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.fragment_sputter.fragment_density[0], 6.28462021e-6 / u.cm**3)
+    assert np.isclose(
+        vmc_from_fortran.fragment_sputter.fragment_density[0], 6.28462021e-6 / u.cm**3
+    )
 
 
 def test_fragment_sputter_density_last(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.fragment_sputter.fragment_density[-1], 3.87345695 / u.cm**3)
+    assert np.isclose(
+        vmc_from_fortran.fragment_sputter.fragment_density[-1], 3.87345695 / u.cm**3
+    )

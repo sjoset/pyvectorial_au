@@ -6,11 +6,13 @@ import pathlib
 
 import numpy as np
 import astropy.units as u
+from astropy.units.quantity import Quantity
 from itertools import islice
 from contextlib import redirect_stdout
+from dataclasses import dataclass
 
-from .vmconfig import VectorialModelConfig
-from .vmresult import VectorialModelResult, FragmentSputterPolar
+from .vectorial_model_config import VectorialModelConfig
+from .vectorial_model_result import VectorialModelResult, FragmentSputterSpherical
 
 """
     For interfacing with the fortran version of the vectorial model, written by Festou, early 1980s
@@ -19,34 +21,51 @@ from .vmresult import VectorialModelResult, FragmentSputterPolar
 """
 
 
-def run_fortran_vmodel(
-    vmc: VectorialModelConfig, fortran_bin_path: pathlib.Path
-) -> None:
+@dataclass
+class FortranModelExtraConfig:
+    bin_path: pathlib.Path
+    fortran_input_filename: pathlib.Path
+    fortran_output_filename: pathlib.Path
+    r_h: Quantity
+    read_sputter: bool = True
+
+
+def run_fortran_vectorial_model(
+    vmc: VectorialModelConfig, extra_config: FortranModelExtraConfig
+) -> VectorialModelResult:
     """
     Given path to fortran binary, runs it by sending it the correct keystrokes
     """
 
-    log.debug("Writing file to feed fortran vectorial model...")
-    _produce_fortran_fparam(vmc)
+    write_fortran_input_file(vmc, extra_config)
 
-    log.info("Running fortran version at %s ...", fortran_bin_path)
+    log.info("Running fortran version at %s ...", extra_config.bin_path)
 
     # my vm.f consumes 14 enters before the calculation
     enter_key_string = "\n" * 14
     p1 = subprocess.Popen(["echo", enter_key_string], stdout=subprocess.PIPE)
     p2 = subprocess.run(
-        f"{fortran_bin_path}", stdin=p1.stdout, stdout=open(os.devnull, "wb")
+        f"{extra_config.bin_path}", stdin=p1.stdout, stdout=open(os.devnull, "wb")
     )
 
     log.info("fortran run complete, return code %s", p2.returncode)
 
+    return vmr_from_fortran_output(
+        extra_config.fortran_output_filename, read_sputter=extra_config.read_sputter
+    )
 
-def get_result_from_fortran(
-    fort16_file: pathlib.Path, read_sputter: bool = True
+
+# TODO: vmc_from_fortran_output()?
+
+
+def vmr_from_fortran_output(
+    fort16_file: pathlib.Path, read_sputter: bool
 ) -> VectorialModelResult:
     """
     Takes the output of the fortran code in fort16_file and returns VectorialModelResult
     """
+
+    log.debug("Attempting to extract VectorialModelConfig from %s ... ", fort16_file)
 
     # Volume density is on line 15 - 27
     fort16_voldens = range(14, 27)
@@ -77,67 +96,97 @@ def get_result_from_fortran(
                 sputter.append(vals)
 
     mgr_line = fort_header[7]
-    mgr = float(re.search("DIM=(.*) KM", mgr_line).group(1)) * u.km
+    mgr = float(re.search("DIM=(.*) KM", mgr_line).group(1)) * u.km  # type: ignore
     cs_line = fort_header[10]
-    csphere = float(re.search("is: (.*) cm", cs_line).group(1)) * u.cm
-    nft_line = fort_header[29]
-    nft = float(re.search("IS  (.*)  TOTAL", nft_line).group(1))
-    nfg_line = fort_header[28]
-    nfg = float(re.search("COMA: (.*)$", nfg_line).group(1))
+    csphere = float(re.search("is: (.*) cm", cs_line).group(1)) * u.cm  # type: ignore
     cr_line = fort_header[7]
-    cr = float(re.search(r"RCOMA=(.*)\(KM\)", cr_line).group(1)) * u.km
+    cr = float(re.search(r"RCOMA=(.*)\(KM\)", cr_line).group(1)) * u.km  # type: ignore
 
     # fortran outputs are in these units
-    vdg *= u.km
-    cdg *= u.km
-    vd *= 1 / u.cm**3
-    cd *= 1 / u.cm**2
+    vdg *= u.km  # type: ignore
+    cdg *= u.km  # type: ignore
+    vd *= 1 / u.cm**3  # type: ignore
+    cd *= 1 / u.cm**2  # type: ignore
 
-    # print(sputter)
     sputter = np.array(sputter).astype(float)
     rs = sputter[:, 0] * u.km
     thetas = sputter[:, 1]
-    fragment_density = sputter[:, 2] / u.cm**3
-    fs = FragmentSputterPolar(rs=rs, thetas=thetas, fragment_density=fragment_density)
+    fragment_density = sputter[:, 2] / u.cm**3  # type: ignore
+    fs = FragmentSputterSpherical(
+        rs=rs, thetas=thetas, fragment_density=fragment_density
+    )
+
+    log.debug("VectorialModelResult extraction complete.")
 
     return VectorialModelResult(
         volume_density_grid=vdg,
         volume_density=vd,
-        column_density_grid=cdg,
-        column_density=cd,
         fragment_sputter=fs,
-        volume_density_interpolation=None,
-        column_density_interpolation=None,
         collision_sphere_radius=csphere,
         max_grid_radius=mgr,
         coma_radius=cr,
-        num_fragments_theory=nft,
-        num_fragments_grid=nfg,
+        column_density_grid=cdg,
+        column_density=cd,
     )
 
 
-def _produce_fortran_fparam(vmc: VectorialModelConfig) -> None:
+def fragment_theory_count_from_fortran_output(
+    fortran_output_filename: pathlib.Path,
+) -> float:
+    with open(fortran_output_filename) as in_file:
+        fort_header = list(islice(in_file, 30))
+    nft_line = fort_header[29]
+    nft = float(re.search("IS  (.*)  TOTAL", nft_line).group(1))  # type: ignore
+
+    return nft
+
+
+def fragment_grid_count_from_fortran_output(
+    fortran_output_filename: pathlib.Path,
+) -> float:
+    with open(fortran_output_filename) as in_file:
+        fort_header = list(islice(in_file, 30))
+    nfg_line = fort_header[28]
+    nfg = float(re.search("COMA: (.*)$", nfg_line).group(1))  # type: ignore
+
+    return nfg
+
+
+def write_fortran_input_file(
+    vmc: VectorialModelConfig, ec: FortranModelExtraConfig
+) -> None:
     """
-    Takes a valid python vectorial model config and produces a valid fortran input file
+    Takes a VectorialModelConfig and produces a fortran input file,
     as long as the production is steady
     """
 
     if vmc.production.time_variation_type is not None:
         log.info(
-            "Only steady production is supported for producing fortran input files! Skipping."
+            "Only steady production is currently supported for producing fortran input files! Skipping."
         )
         return
+
+    log.debug(
+        "Writing input config file %s to feed fortran vectorial model...",
+        ec.fortran_input_filename,
+    )
+
+    # default values that do not affect volume or column density, only aperture brightness, which we don't use
+    # small delta stos the IUE aperture sizes hard-coded into the fortran version from being too large
+    delta = 0.01
+    g_factor = 2.33e-4
+    comet_name = "Default comet"
+    fragment_name = "Default fragment"
 
     # TODO: binned time production should also be handled here, but fortran only supports 20 bins of time division
     #   so we would have to check if the input had 20 or less time bins first
     # TODO: parent and fragment destruction levels are hard-coded to the defaults of the python model in sbpy so that
     #   the calculations will match
-    fparam_outfile = vmc.etc["in_file"]
 
-    with open(fparam_outfile, "w") as out_file:
+    with open(ec.fortran_input_filename, "w") as out_file:
         with redirect_stdout(out_file):
-            print(f"{vmc.comet.name}")
-            print(f"{vmc.comet.rh.to(u.AU).value}  {vmc.etc['delta']}")
+            print(f"{comet_name}")
+            print(f"{ec.r_h.to(u.AU).value}  {delta}")
             # length of production array: only base production rate for 60 days
             print("1")
             print(f"{vmc.production.base_q.to(1/u.s).value}  60.0")
@@ -148,12 +197,15 @@ def _produce_fortran_fparam(vmc: VectorialModelConfig) -> None:
             print(f"{vmc.parent.v_outflow.to(u.km/u.s).value}")
             print(f"{vmc.parent.tau_T.to(u.s).value}")
             print(f"{vmc.parent.tau_d.to(u.s).value}")
-            print("99.0")
+            print(f"{vmc.grid.parent_destruction_level*100}")
             # fragment info - gfactor, speed, total lifetime, destruction level
-            print(f"{vmc.fragment.name}")
-            print(f"{vmc.etc['g_factor']}")
+            print(f"{fragment_name}")
+            print(f"{g_factor}")
             print(f"{vmc.fragment.v_photo.to(u.km/u.s).value}")
             print(f"{vmc.fragment.tau_T.to(u.s).value}")
-            print("95.0")
+            print(f"{vmc.grid.fragment_destruction_level*100}")
             # Custom aperture size, unused for our purposes so these are dummy values
-            print("  100.000000       100.00000")
+            print("  1.3       3.6 ")
+            # print("  0.000001       0.00001")
+
+    log.debug("Writing fortran input file complete.")

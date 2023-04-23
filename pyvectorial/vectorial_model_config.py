@@ -1,7 +1,7 @@
-
 import astropy.units as u
 
 from dataclasses import dataclass
+from typing import Optional
 
 
 """
@@ -16,34 +16,23 @@ from dataclasses import dataclass
 @dataclass
 class Production:
     base_q: u.quantity.Quantity
-    time_variation_type: str
-    params: dict
+    time_variation_type: Optional[str] = None
+    # TODO: introduce types for each supported time-variation type
+    params: Optional[dict] = None
 
 
 @dataclass
 class Parent:
-    name: str
-    v_outflow: u.quantity.Quantity
     tau_d: u.quantity.Quantity
     tau_T: u.quantity.Quantity
+    v_outflow: u.quantity.Quantity
     sigma: u.quantity.Quantity
-    T_to_d_ratio: float
 
 
 @dataclass
 class Fragment:
-    name: str
     v_photo: u.quantity.Quantity
     tau_T: u.quantity.Quantity
-
-
-@dataclass
-class Comet:
-    name: str
-    rh: u.quantity.Quantity
-    delta: u.quantity.Quantity
-    transform_method: str
-    transform_applied: bool
 
 
 @dataclass
@@ -51,6 +40,9 @@ class Grid:
     radial_points: int
     angular_points: int
     radial_substeps: int
+    # TODO: once the code is working, should these have defaults?
+    parent_destruction_level: float
+    fragment_destruction_level: float
 
 
 @dataclass
@@ -58,6 +50,4 @@ class VectorialModelConfig:
     production: Production
     parent: Parent
     fragment: Fragment
-    comet: Comet
     grid: Grid
-    etc: dict

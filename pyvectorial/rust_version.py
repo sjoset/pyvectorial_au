@@ -1,3 +1,10 @@
+__all__ = [
+    "RustModelExtraConfig",
+    "run_rust_vectorial_model",
+    "vmc_from_rust_output",
+    "vmr_from_rust_output",
+    "write_rust_input_file",
+]
 import os
 import re
 import subprocess
@@ -8,120 +15,178 @@ import yaml
 import numpy as np
 import astropy.units as u
 from itertools import islice
+from dataclasses import dataclass
+from typing import Optional
 
-from .vmconfig import VectorialModelConfig
-from .vmresult import VectorialModelResult, FragmentSputterPolar
+from .vectorial_model_config import (
+    VectorialModelConfig,
+    Production,
+    Parent,
+    Fragment,
+    Grid,
+)
+from .vectorial_model_result import VectorialModelResult, FragmentSputterSpherical
+
 
 """
     For interfacing with the rust version of the vectorial model
-
-    Takes a VectorialModelConfig and fills a VectorialModelResult based on its calculations
 """
 
 
-def run_rust_vmodel(
-    vmc: VectorialModelConfig, rust_vmodel_bin_path: pathlib.Path
+@dataclass
+class RustModelExtraConfig:
+    bin_path: pathlib.Path
+    rust_input_filename: pathlib.Path
+    rust_output_filename: pathlib.Path
+
+
+def run_rust_vectorial_model(
+    vmc: VectorialModelConfig, extra_config: RustModelExtraConfig
 ) -> VectorialModelResult:
     """
     Given path to rust vmodel binary, runs it by sending it the correct keystrokes
     """
 
-    rust_input_filename = pathlib.Path("rust_input.yaml")
-    rust_output_filename = pathlib.Path("rust_output.txt")
+    log.debug(
+        "Writing input config file %s to feed rust vectorial model...",
+        extra_config.rust_input_filename,
+    )
+    write_rust_input_file(vmc, extra_config.rust_input_filename)
 
-    log.debug("Writing file %s to feed rust vectorial model...", rust_input_filename)
-    _write_rust_input_file(vmc, rust_input_filename)
-
-    log.info("Running rust version at %s ...", rust_vmodel_bin_path)
+    log.info("Running rust version at %s ...", extra_config.bin_path)
     p1 = subprocess.run(
-        f"{rust_vmodel_bin_path} {rust_input_filename} {rust_output_filename}",
+        # f"{extra_config.bin_path} {extra_config.rust_input_filename} {extra_config.rust_output_filename}",
+        args=[
+            str(extra_config.bin_path),
+            str(extra_config.rust_input_filename),
+            str(extra_config.rust_output_filename),
+        ],
         stdout=open(os.devnull, "wb"),
     )
     log.info("rust vmodel run complete, return code %s", p1.returncode)
 
-    return vmr_from_rust_output(rust_output_filename)
+    return vmr_from_rust_output(extra_config.rust_output_filename, vmc)
 
 
-def vmr_from_rust_output(
-    rust_output_filename: pathlib.Path, read_sputter: bool = True
-) -> VectorialModelResult:
-    """
-    Takes the output of the rust code in rust_output_filename and returns VectorialModelResult
-    """
+def vmc_from_rust_output(rust_output_filename: pathlib.Path) -> VectorialModelConfig:
+    with open(rust_output_filename, "r") as f:
+        header = list(islice(f, 10))
 
-    # Volume density is on line 15 - 27
-    fort16_voldens = range(14, 27)
-    # Column density is on line 53 - 70
-    fort16_coldens = range(52, 70)
-    # sputter array starts at line 177 through to the end
-    fort16_sputter = 176
+    # scientific_notation_regex = r"[0-9]\.[0-9]*e[+-]?[0-9]+"
 
-    vdg = []
-    vd = []
-    cdg = []
-    cd = []
-    sputter = []
-    with open(rust_output_filename) as in_file:
-        fort_header = list(islice(in_file, 30))
-        in_file.seek(0)
-        for i, line in enumerate(in_file):
-            if i in fort16_voldens:
-                vals = [float(x) for x in line.split()]
-                vdg.extend(vals[0::2])
-                vd.extend(vals[1::2])
-            if i in fort16_coldens:
-                vals = [float(x) for x in line.split()]
-                cdg.extend(vals[0::2])
-                cd.extend(vals[1::2])
-            if i >= fort16_sputter and read_sputter:
-                vals = [float(x) for x in line.split()]
-                sputter.append(vals)
+    base_q = float(re.search(r"Q: ([0-9]\.[0-9]+e[+-]?[0-9]+) mol/s", header[2]).group(1)) / u.s  # type: ignore
+    p_tau_d = (
+        float(re.search(r"Parent dissociative lifetime: ([0-9]\.[0-9]*e[+-]?[0-9]+) s", header[2]).group(1))  # type: ignore
+        * u.s
+    )
+    p_tau_T = (
+        float(re.search(r"Parent total lifetime: ([0-9]\.[0-9]*e[+-]?[0-9]+) s", header[2]).group(1)) * u.s  # type: ignore
+    )
+    v_outflow = float(
+        re.search(r"Parent outflow velocity: ([0-9]\.[0-9]*e[+-]?[0-9]+) m/s", header[2]).group(1)  # type: ignore
+    ) * (u.m / u.s)
+    sigma = (
+        float(re.search(r"Parent cross sectional area: ([0-9]\.[0-9]*e[+-]?[0-9]+) m\^2", header[3]).group(1))  # type: ignore
+        * u.m**2  # type: ignore
+    )
+    f_tau_T = (
+        float(re.search(r"Fragment total lifetime: ([0-9]\.[0-9]*e[+-]?[0-9]+) s", header[3]).group(1)) * u.s  # type: ignore
+    )
+    v_photo = (
+        float(re.search(r"Fragment velocity: ([0-9]\.[0-9]*e[+-]?[0-9]+) m/s", header[3]).group(1)) * u.m / u.s  # type: ignore
+    )
+    radial_points = int(re.search(r"Radial grid size: ([0-9]+)", header[0]).group(1))  # type: ignore
+    angular_points = int(re.search(r"Angular grid size: ([0-9]+)", header[0]).group(1))  # type: ignore
+    radial_substeps = int(re.search(r"Radial substeps: ([0-9]+)", header[0]).group(1))  # type: ignore
+    parent_destruction_level = (
+        float(re.search(r"Parent destruction level: ([0-9]+\.[0-9]+)%", header[4]).group(1)) / 100.0  # type: ignore
+    )
+    fragment_destruction_level = (
+        float(re.search(r"Fragment destruction level: ([0-9]+\.[0-9]+)%", header[4]).group(1))  # type: ignore
+        / 100.0
+    )
 
-    mgr_line = fort_header[7]
-    mgr = float(re.search("DIM=(.*) KM", mgr_line).group(1)) * u.km
-    cs_line = fort_header[10]
-    csphere = float(re.search("is: (.*) cm", cs_line).group(1)) * u.cm
-    nft_line = fort_header[29]
-    nft = float(re.search("IS  (.*)  TOTAL", nft_line).group(1))
-    nfg_line = fort_header[28]
-    nfg = float(re.search("COMA: (.*)$", nfg_line).group(1))
-    cr_line = fort_header[7]
-    cr = float(re.search(r"RCOMA=(.*)\(KM\)", cr_line).group(1)) * u.km
-
-    # rust outputs are in these units
-    vdg *= u.km
-    cdg *= u.km
-    vd *= 1 / u.cm**3
-    cd *= 1 / u.cm**2
-
-    # print(sputter)
-    sputter = np.array(sputter).astype(float)
-    rs = sputter[:, 0] * u.km
-    thetas = sputter[:, 1]
-    fragment_density = sputter[:, 2] / u.cm**3
-    fs = FragmentSputterPolar(rs=rs, thetas=thetas, fragment_density=fragment_density)
-
-    return VectorialModelResult(
-        volume_density_grid=vdg,
-        volume_density=vd,
-        column_density_grid=cdg,
-        column_density=cd,
-        fragment_sputter=fs,
-        volume_density_interpolation=None,
-        column_density_interpolation=None,
-        collision_sphere_radius=csphere,
-        max_grid_radius=mgr,
-        coma_radius=cr,
-        num_fragments_theory=nft,
-        num_fragments_grid=nfg,
+    return VectorialModelConfig(
+        production=Production(base_q=base_q),
+        parent=Parent(tau_d=p_tau_d, tau_T=p_tau_T, v_outflow=v_outflow, sigma=sigma),
+        fragment=Fragment(v_photo=v_photo, tau_T=f_tau_T),
+        grid=Grid(
+            radial_points=radial_points,
+            angular_points=angular_points,
+            radial_substeps=radial_substeps,
+            parent_destruction_level=parent_destruction_level,
+            fragment_destruction_level=fragment_destruction_level,
+        ),
     )
 
 
-def _write_rust_input_file(
+def vmr_from_rust_output(
+    rust_output_filename: pathlib.Path, vmc: Optional[VectorialModelConfig]
+) -> VectorialModelResult:
+    """
+    Takes the output of the rust model in rust_output_filename and returns VectorialModelResult
+    """
+
+    if vmc is None:
+        vmc = vmc_from_rust_output(rust_output_filename=rust_output_filename)
+
+    # volume density starts at line 12, and has vmc.grid.radial_points entries
+    volume_density_lines = range(11, 11 + vmc.grid.radial_points)
+
+    # The +1 skips the line of "r, theta, fragment density"
+    sputter_starts_at = 11 + vmc.grid.radial_points + 1
+
+    volume_density_grid = []
+    volume_density = []
+    fragment_sputter_list = []
+
+    with open(rust_output_filename) as f:
+        header = list(islice(f, 10))
+        f.seek(0)
+        for i, line in enumerate(f):
+            if i in volume_density_lines:
+                vals = [float(x) for x in line.split(",")]
+                volume_density_grid.extend(vals[0::2])
+                volume_density.extend(vals[1::2])
+            if i >= sputter_starts_at:
+                vals = [float(x) for x in line.split(",")]
+                fragment_sputter_list.append(vals)
+
+    # rust outputs are in these units
+    volume_density_grid *= u.m  # type: ignore
+    volume_density *= 1 / u.m**3  # type: ignore
+
+    fragment_sputter_array = np.array(fragment_sputter_list).astype(float)
+    rs = fragment_sputter_array[:, 0] * u.m
+    thetas = fragment_sputter_array[:, 1]
+    fragment_density = fragment_sputter_array[:, 2] / u.m**3  # type: ignore
+    fragment_sputter = FragmentSputterSpherical(
+        rs=rs, thetas=thetas, fragment_density=fragment_density
+    )
+
+    collision_sphere_radius = (  # type: ignore
+        float(re.search("Collision sphere radius: (.*) km", header[6]).group(1)) * u.km  # type: ignore
+    )
+    coma_radius = float(re.search("Coma radius: (.*) km", header[7]).group(1)) * u.km  # type: ignore
+    max_grid_radius = (  # type: ignore
+        float(re.search("Max grid extent: (.*) km", header[8]).group(1)) * u.km  # type: ignore
+    )
+
+    return VectorialModelResult(
+        volume_density_grid=volume_density_grid,
+        volume_density=volume_density,
+        fragment_sputter=fragment_sputter,
+        collision_sphere_radius=collision_sphere_radius,
+        max_grid_radius=max_grid_radius,
+        coma_radius=coma_radius,
+    )
+
+
+def write_rust_input_file(
     vmc: VectorialModelConfig, rust_input_filename: pathlib.Path
 ) -> None:
     """
-    Takes a valid python vectorial model config and produces a valid rust vmodel input file
+    Takes a valid vectorial model config and produces a valid input file to give to the rust version of the model as input
     Only steady production is currently supported in the rust version
     """
 
@@ -130,13 +195,13 @@ def _write_rust_input_file(
         return
 
     rust_config_dict = {
-        "base_q": vmc.production.base_q.to_value(1 / u.s),
-        "p_tau_d": vmc.parent.tau_d.to_value(u.s),
-        "p_tau_t": vmc.parent.tau_T.to_value(u.s),
-        "v_outflow": vmc.parent.v_outflow.to_value(u.m / u.s),
-        "sigma": vmc.parent.sigma.to_value(u.m**2),
-        "f_tau_t": vmc.fragment.tau_T.to_value(u.s),
-        "v_photo": vmc.fragment.v_photo.to_value(u.s),
+        "base_q": float(vmc.production.base_q.to_value(1 / u.s)),
+        "p_tau_d": float(vmc.parent.tau_d.to_value(u.s)),
+        "p_tau_t": float(vmc.parent.tau_T.to_value(u.s)),
+        "v_outflow": float(vmc.parent.v_outflow.to_value(u.m / u.s)),
+        "sigma": float(vmc.parent.sigma.to_value(u.m**2)),  # type: ignore
+        "f_tau_t": float(vmc.fragment.tau_T.to_value(u.s)),
+        "v_photo": float(vmc.fragment.v_photo.to_value(u.m / u.s)),
         "radial_points": int(vmc.grid.radial_points),
         "angular_points": int(vmc.grid.angular_points),
         "radial_substeps": int(vmc.grid.radial_substeps),

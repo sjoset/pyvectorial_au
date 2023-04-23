@@ -52,11 +52,11 @@ class HaserFitResult:
     """
 
     # Function that was fitted
-    fitting_function: None = None
+    fitting_function: Callable
     # np.ndarray of best-fit parameters
-    fitted_params: List = None
+    fitted_params: List
     # np.ndarry of parameter covariances
-    covariances: List = None
+    covariances: List
 
 
 def haser_params_from_full_fit_result(hfr: HaserFitResult) -> HaserParams:

@@ -3,14 +3,29 @@ import time
 import logging as log
 import astropy.units as u
 import importlib.metadata as impm
-import pyvectorial as pyv
 
 from astropy.table import QTable
+from astropy.units.quantity import Quantity
 from multiprocessing import Pool
-from typing import List, Tuple
+from typing import List, Tuple, Union
+from functools import partial
+
+from .vectorial_model_config import VectorialModelConfig
+from .vectorial_model_result import VectorialModelResult
+from .vectorial_model_runner import run_vectorial_model
+from .python_version import PythonModelExtraConfig
+from .fortran_version import FortranModelExtraConfig
+from .rust_version import RustModelExtraConfig
+from .pickle_encoding import pickle_to_base64, unpickle_from_base64
+from .hashing import hash_vmc
 
 
-def run_vmodel_timed(vmc: pyv.VectorialModelConfig) -> Tuple:
+def run_vmodel_timed(
+    vmc: VectorialModelConfig,
+    extra_config: Union[
+        PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
+    ],
+) -> Tuple[str, Quantity]:
     """
     Service function that takes a vmc, runs a model, and returns results + timing information.
 
@@ -20,14 +35,16 @@ def run_vmodel_timed(vmc: pyv.VectorialModelConfig) -> Tuple:
     """
 
     t_i = time.time()
-    coma_pickled = pyv.pickle_to_base64(pyv.run_vmodel(vmc))
+    vmr_pickled = pickle_to_base64(run_vectorial_model(vmc, extra_config))
     t_f = time.time()
 
-    return (coma_pickled, (t_f - t_i) * u.s)
+    return (vmr_pickled, (t_f - t_i) * u.s)
 
 
 def build_calculation_table(
-    vmc_set: List[pyv.VectorialModelConfig], parallelism: int = 1
+    vmc_set: List[VectorialModelConfig],
+    parallelism: int = 1,
+    extra_config=PythonModelExtraConfig(print_progress=False),
 ) -> QTable:
     """
     Take a set of model configs, run them, and return QTable with results of input vmc,
@@ -38,7 +55,7 @@ def build_calculation_table(
 
     sbpy_ver = impm.version("sbpy")
     calculation_table = QTable(
-        names=("b64_encoded_vmc", "vmc_hash", "b64_encoded_coma"),
+        names=("vmc_hash", "b64_encoded_vmc", "b64_encoded_vmr"),
         dtype=("U", "U", "U"),
         meta={"sbpy_ver": sbpy_ver},
     )
@@ -49,18 +66,22 @@ def build_calculation_table(
         len(vmc_set),
         parallelism,
     )
+
+    run_vmodel_timed_mappable_func = partial(
+        run_vmodel_timed, extra_config=extra_config
+    )
     with Pool(parallelism) as vm_pool:
-        model_results = vm_pool.map(run_vmodel_timed, vmc_set)
+        model_results = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)
     t_f = time.time()
     log.info("Pooled calculations complete, time: %s", (t_f - t_i) * u.s)
 
     times_list = []
     for i, vmc in enumerate(vmc_set):
-        pickled_coma = model_results[i][0]
+        pickled_vmr = model_results[i][0]
         times_list.append(model_results[i][1])
-        pickled_vmc = pyv.pickle_to_base64(vmc)
+        pickled_vmc = pickle_to_base64(vmc)
 
-        calculation_table.add_row((pickled_vmc, pyv.hash_vmc(vmc), pickled_coma))
+        calculation_table.add_row((hash_vmc(vmc), pickled_vmc, pickled_vmr))
 
     calculation_table.add_column(times_list, name="model_run_time")
 
@@ -75,24 +96,28 @@ def add_vmc_columns(qt: QTable) -> None:
     Take a QTable of finished vectorial model calculations and add information
     from the VectorialModelConfig as columns in the given table
     """
-    vmc_list = [pyv.unpickle_from_base64(row["b64_encoded_vmc"]) for row in qt]  # type: ignore
+    vmc_list = [unpickle_from_base64(row["b64_encoded_vmc"]) for row in qt]  # type: ignore
 
     qt.add_column([vmc.production.base_q for vmc in vmc_list], name="base_q")
 
-    qt.add_column([vmc.parent.name for vmc in vmc_list], name="parent_molecule")
     qt.add_column([vmc.parent.tau_d for vmc in vmc_list], name="parent_tau_d")
     qt.add_column([vmc.parent.tau_T for vmc in vmc_list], name="parent_tau_T")
     qt.add_column([vmc.parent.sigma for vmc in vmc_list], name="parent_sigma")
     qt.add_column([vmc.parent.v_outflow for vmc in vmc_list], name="v_outflow")
 
-    qt.add_column([vmc.fragment.name for vmc in vmc_list], name="fragment_molecule")
     qt.add_column([vmc.fragment.tau_T for vmc in vmc_list], name="fragment_tau_T")
     qt.add_column([vmc.fragment.v_photo for vmc in vmc_list], name="v_photo")
-
-    qt.add_column([vmc.comet.rh for vmc in vmc_list], name="r_h")
 
     qt.add_column([vmc.grid.radial_points for vmc in vmc_list], name="radial_points")
     qt.add_column([vmc.grid.angular_points for vmc in vmc_list], name="angular_points")
     qt.add_column(
         [vmc.grid.radial_substeps for vmc in vmc_list], name="radial_substeps"
+    )
+    qt.add_column(
+        [vmc.grid.parent_destruction_level for vmc in vmc_list],
+        name="parent_destruction_level",
+    )
+    qt.add_column(
+        [vmc.grid.fragment_destruction_level for vmc in vmc_list],
+        name="fragment_destruction_level",
     )

@@ -2,7 +2,8 @@ import numpy as np
 import astropy.units as u
 
 from dataclasses import dataclass
-from .vmconfig import VectorialModelConfig
+from typing import Optional
+from .vectorial_model_config import VectorialModelConfig
 
 
 """
@@ -13,13 +14,13 @@ from .vmconfig import VectorialModelConfig
 @dataclass
 class HaserParams:
     # total parent production, ~ 1/u.s
-    q: u.Quantity
+    q: Optional[u.Quantity]
     # outflow speed of parents
-    v_outflow: u.Quantity
+    v_outflow: Optional[u.Quantity]
     # length scale of parent
-    gamma_p: u.Quantity
+    gamma_p: Optional[u.Quantity]
     # length scale of daughter
-    gamma_d: u.Quantity
+    gamma_d: Optional[u.Quantity]
 
 
 # TODO: move this somewhere else
