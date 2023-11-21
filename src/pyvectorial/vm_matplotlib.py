@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import numpy as np
 import astropy.units as u
 import scipy.interpolate
@@ -8,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cmx
 from matplotlib.colors import Normalize
 
-from .vectorial_model_result import (
+from pyvectorial.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterPolar,
     FragmentSputterSpherical,

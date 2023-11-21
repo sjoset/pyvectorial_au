@@ -1,31 +1,27 @@
-__all__ = [
-    "RustModelExtraConfig",
-    "run_rust_vectorial_model",
-    "vmc_from_rust_output",
-    "vmr_from_rust_output",
-    "write_rust_input_file",
-]
 import os
 import re
 import subprocess
 import logging as log
 import pathlib
 import yaml
-
-import numpy as np
-import astropy.units as u
 from itertools import islice
 from dataclasses import dataclass
 from typing import Optional
 
-from .vectorial_model_config import (
+import numpy as np
+import astropy.units as u
+
+from pyvectorial.vectorial_model_config import (
     VectorialModelConfig,
     Production,
     Parent,
     Fragment,
     Grid,
 )
-from .vectorial_model_result import VectorialModelResult, FragmentSputterSpherical
+from pyvectorial.vectorial_model_result import (
+    VectorialModelResult,
+    FragmentSputterSpherical,
+)
 
 
 """

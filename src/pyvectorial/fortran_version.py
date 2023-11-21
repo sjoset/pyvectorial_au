@@ -11,8 +11,11 @@ from itertools import islice
 from contextlib import redirect_stdout
 from dataclasses import dataclass
 
-from .vectorial_model_config import VectorialModelConfig
-from .vectorial_model_result import VectorialModelResult, FragmentSputterSpherical
+from pyvectorial.vectorial_model_config import VectorialModelConfig
+from pyvectorial.vectorial_model_result import (
+    VectorialModelResult,
+    FragmentSputterSpherical,
+)
 
 """
     For interfacing with the fortran version of the vectorial model, written by Festou, early 1980s
@@ -53,9 +56,6 @@ def run_fortran_vectorial_model(
     return vmr_from_fortran_output(
         extra_config.fortran_output_filename, read_sputter=extra_config.read_sputter
     )
-
-
-# TODO: vmc_from_fortran_output()?
 
 
 def vmr_from_fortran_output(

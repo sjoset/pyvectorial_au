@@ -1,15 +1,12 @@
-#!/usr/bin/env python3
-
 import numpy as np
 import copy
 import astropy.units as u
 import scipy.interpolate
 import plotly.graph_objects as go
 from typing import Tuple
-from sbpy.activity import VectorialModel
 from typing import Optional
 
-from .vectorial_model_result import (
+from pyvectorial.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterPolar,
     FragmentSputterSpherical,

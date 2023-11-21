@@ -4,9 +4,12 @@ import sbpy.activity as sba
 from sbpy.data import Phys
 from dataclasses import asdict, dataclass
 
-from .timedependentproduction import TimeDependentProduction
-from .vectorial_model_config import VectorialModelConfig
-from .vectorial_model_result import VectorialModelResult, FragmentSputterSpherical
+from pyvectorial.timedependentproduction import TimeDependentProduction
+from pyvectorial.vectorial_model_config import VectorialModelConfig
+from pyvectorial.vectorial_model_result import (
+    VectorialModelResult,
+    FragmentSputterSpherical,
+)
 
 
 """

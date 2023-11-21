@@ -1,44 +1,26 @@
 import time
-
 import logging as log
-import astropy.units as u
 import importlib.metadata as impm
-
-from astropy.table import QTable
-from astropy.units.quantity import Quantity
 from multiprocessing import Pool
-from typing import List, Tuple, Union
+from typing import List
 from functools import partial
 
-from .vectorial_model_config import VectorialModelConfig
-from .vectorial_model_result import VectorialModelResult
-from .vectorial_model_runner import run_vectorial_model
-from .python_version import PythonModelExtraConfig
-from .fortran_version import FortranModelExtraConfig
-from .rust_version import RustModelExtraConfig
-from .pickle_encoding import pickle_to_base64, unpickle_from_base64
-from .hashing import hash_vmc
+import astropy.units as u
+from astropy.table import QTable
+
+from pyvectorial.vectorial_model_config import VectorialModelConfig, hash_vmc
+from pyvectorial.python_version import PythonModelExtraConfig
+from pyvectorial.pickle_encoding import pickle_to_base64, unpickle_from_base64
+from pyvectorial.vectorial_model_runner import run_vectorial_model_timed
 
 
-def run_vmodel_timed(
-    vmc: VectorialModelConfig,
-    extra_config: Union[
-        PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
-    ],
-) -> Tuple[str, Quantity]:
-    """
-    Service function that takes a vmc, runs a model, and returns results + timing information.
+"""
+The calculation table here is a an astropy QTable with columns:
 
-    Returns the encoded coma (using the dill library) because python multiprocessing wants
-    to pickle return values to send them back to the main calling process.  The coma can't be
-    pickled by the stock python pickler so we pickle it here with dill and things are fine
-    """
+vmc_hash, b64_encoded_vmc, b64_encoded_vmr
 
-    t_i = time.time()
-    vmr_pickled = pickle_to_base64(run_vectorial_model(vmc, extra_config))
-    t_f = time.time()
-
-    return (vmr_pickled, (t_f - t_i) * u.s)
+with additional columns added by the function 'add_vmc_columns()' below detailing parameters given to the model
+"""
 
 
 def build_calculation_table(
@@ -68,7 +50,7 @@ def build_calculation_table(
     )
 
     run_vmodel_timed_mappable_func = partial(
-        run_vmodel_timed, extra_config=extra_config
+        run_vectorial_model_timed, extra_config=extra_config
     )
     with Pool(parallelism) as vm_pool:
         model_results = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)

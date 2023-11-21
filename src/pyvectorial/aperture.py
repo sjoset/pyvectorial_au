@@ -1,15 +1,12 @@
-__all__ = ["total_number_in_aperture", "UncenteredRectangularAperture"]
-
-import scipy.integrate
-
 import logging as log
-import numpy as np
-import astropy.units as u
+from typing import Tuple
 
+import numpy as np
+import scipy.integrate
+import astropy.units as u
 import sbpy.activity as sba
 
-from typing import Tuple
-from .vectorial_model_result import VectorialModelResult
+from pyvectorial.vectorial_model_result import VectorialModelResult
 
 
 class UncenteredRectangularAperture(sba.Aperture):
@@ -48,7 +45,7 @@ def total_number_in_aperture(
     vmr: VectorialModelResult, ap: sba.Aperture, epsabs=1.49e-8
 ) -> Tuple[float, float]:
     """
-    Integrate column density over an aperture.
+    Integrate column density over an aperture, returning tuple of (result, err)
     """
 
     if vmr.column_density_interpolation is None:
@@ -70,7 +67,7 @@ def total_number_in_aperture(
             rho in m, column_density in m**-2
 
             """
-            return rho * vmr.column_density_interpolation(rho)
+            return rho * vmr.column_density_interpolation(rho)  # type: ignore
 
         N, err = scipy.integrate.quad(f_circular, *limits, epsabs=epsabs)
         N *= 2 * np.pi
@@ -78,7 +75,7 @@ def total_number_in_aperture(
     elif isinstance(ap, sba.RectangularAperture):
         shape = ap.shape.to_value(u.m)
 
-        def f_rectangular(rho, th):
+        def f_rectangular(rho, _):
             """Column density integration in polar coordinates.
 
             rho in m, column_density in m**-2
@@ -90,7 +87,7 @@ def total_number_in_aperture(
 
         # first "octant"; rho1 and rho2 are the limits of the
         # integration
-        def rho1(th):
+        def rho1(_):
             "Lower limit"
             return 0
 
@@ -142,7 +139,7 @@ def total_number_in_aperture(
             return vmr.column_density_interpolation(rho)  # type: ignore
 
         # shape = (x1, y1, x2, y2)
-        N, err = scipy.integrate.dblquad(
+        N, err = scipy.integrate.dblquad(  # type: ignore
             f_uncentered, shape[0], shape[2], shape[1], shape[3], epsabs=epsabs
         )
     else:

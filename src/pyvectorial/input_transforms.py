@@ -8,7 +8,7 @@ import numpy as np
 from enum import Enum, auto
 from typing import Optional
 
-from .vectorial_model_config import VectorialModelConfig
+from pyvectorial.vectorial_model_config import VectorialModelConfig
 
 
 """

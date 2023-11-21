@@ -4,7 +4,7 @@ import pathlib
 import astropy.units as u
 from dataclasses import asdict
 
-from .vectorial_model_config import VectorialModelConfig
+from pyvectorial.vectorial_model_config import VectorialModelConfig
 
 
 """

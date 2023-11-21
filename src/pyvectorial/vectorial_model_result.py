@@ -83,7 +83,7 @@ def mirror_fragment_sputter(
     The sputter in (r, theta, density) in spherical coordinate format occupies the positive x-axis only due to the azimuthal symmetry of the problem.
     When we convert that to other coordinate systems, we might want to include the negative x-axis by mirroring the fragment sputter around x = 0,
     which this function provides.
-    The type given is the return type.
+    The return type is the same type as the input
     """
     if isinstance(fsp, FragmentSputterPolar):
         fsp.rs = np.append(fsp.rs, fsp.rs)

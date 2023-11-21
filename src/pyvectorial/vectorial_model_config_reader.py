@@ -5,7 +5,7 @@ import logging as log
 import astropy.units as u
 from typing import Optional
 
-from .vectorial_model_config import (
+from pyvectorial.vectorial_model_config import (
     VectorialModelConfig,
     Production,
     Parent,

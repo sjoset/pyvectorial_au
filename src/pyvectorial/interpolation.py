@@ -3,7 +3,7 @@ import astropy.units as u
 
 from scipy.interpolate import CubicSpline
 
-from .vectorial_model_result import VectorialModelResult
+from pyvectorial.vectorial_model_result import VectorialModelResult
 
 
 def interpolate_volume_density(vmr: VectorialModelResult) -> None:
