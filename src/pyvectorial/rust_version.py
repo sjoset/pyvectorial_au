@@ -10,6 +10,11 @@ from typing import Optional
 
 import numpy as np
 import astropy.units as u
+from pyvectorial.column_density_abel import column_density_from_abel
+from pyvectorial.interpolation import (
+    interpolate_column_density,
+    interpolate_volume_density,
+)
 
 from pyvectorial.vectorial_model_config import (
     VectorialModelConfig,
@@ -40,7 +45,7 @@ def run_rust_vectorial_model(
     vmc: VectorialModelConfig, extra_config: RustModelExtraConfig
 ) -> VectorialModelResult:
     """
-    Given path to rust vmodel binary, runs it by sending it the correct keystrokes
+    Given path to rust vmodel binary, runs the given model configuration
     """
 
     log.debug(
@@ -51,7 +56,6 @@ def run_rust_vectorial_model(
 
     log.info("Running rust version at %s ...", extra_config.bin_path)
     p1 = subprocess.run(
-        # f"{extra_config.bin_path} {extra_config.rust_input_filename} {extra_config.rust_output_filename}",
         args=[
             str(extra_config.bin_path),
             str(extra_config.rust_input_filename),
@@ -61,14 +65,17 @@ def run_rust_vectorial_model(
     )
     log.info("rust vmodel run complete, return code %s", p1.returncode)
 
-    return vmr_from_rust_output(extra_config.rust_output_filename, vmc)
+    vmr = vmr_from_rust_output(extra_config.rust_output_filename, vmc)
+
+    interpolate_volume_density(vmr)
+    column_density_from_abel(vmr)
+    interpolate_column_density(vmr)
+    return vmr
 
 
 def vmc_from_rust_output(rust_output_filename: pathlib.Path) -> VectorialModelConfig:
     with open(rust_output_filename, "r") as f:
         header = list(islice(f, 10))
-
-    # scientific_notation_regex = r"[0-9]\.[0-9]*e[+-]?[0-9]+"
 
     base_q = float(re.search(r"Q: ([0-9]\.[0-9]+e[+-]?[0-9]+) mol/s", header[2]).group(1)) / u.s  # type: ignore
     p_tau_d = (

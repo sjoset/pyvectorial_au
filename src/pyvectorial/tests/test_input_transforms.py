@@ -2,14 +2,14 @@ import pytest
 import astropy.units as u
 import numpy as np
 
-from ..vectorial_model_config import (
+from pyvectorial.vectorial_model_config import (
     VectorialModelConfig,
     Production,
     Parent,
     Fragment,
     Grid,
 )
-from ..input_transforms import (
+from pyvectorial.input_transforms import (
     apply_input_transform,
     unapply_input_transform,
     VmcTransform,

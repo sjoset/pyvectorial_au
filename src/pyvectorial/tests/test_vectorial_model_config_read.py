@@ -1,7 +1,7 @@
 import os
 import pytest
 import astropy.units as u
-from ..vectorial_model_config_reader import vectorial_model_config_from_yaml
+from pyvectorial.vectorial_model_config_reader import vectorial_model_config_from_yaml
 
 
 @pytest.fixture

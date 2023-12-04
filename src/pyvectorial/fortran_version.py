@@ -10,6 +10,11 @@ from astropy.units.quantity import Quantity
 from itertools import islice
 from contextlib import redirect_stdout
 from dataclasses import dataclass
+from pyvectorial.column_density_abel import column_density_from_abel
+from pyvectorial.interpolation import (
+    interpolate_column_density,
+    interpolate_volume_density,
+)
 
 from pyvectorial.vectorial_model_config import VectorialModelConfig
 from pyvectorial.vectorial_model_result import (
@@ -53,9 +58,16 @@ def run_fortran_vectorial_model(
 
     log.info("fortran run complete, return code %s", p2.returncode)
 
-    return vmr_from_fortran_output(
+    # return vmr_from_fortran_output(
+    #     extra_config.fortran_output_filename, read_sputter=extra_config.read_sputter
+    # )
+    vmr = vmr_from_fortran_output(
         extra_config.fortran_output_filename, read_sputter=extra_config.read_sputter
     )
+    interpolate_volume_density(vmr)
+    column_density_from_abel(vmr)
+    interpolate_column_density(vmr)
+    return vmr
 
 
 def vmr_from_fortran_output(
