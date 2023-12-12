@@ -15,9 +15,11 @@ plotly = ">=5.18.0"
 pyabel = ">=0.9.0"
 pytest-cov = "^4.1.0"
 sbpy = "^0.4.0"
+pandas = "^2.1.3"
+pydantic = "^2.5.2"
 
-# [tool.poetry.scripts]
-# scp_tui = 'swift_comet_pipeline.scp_tui:main'
+[tool.poetry.scripts]
+pyv_oneshot = 'pyvectorial.scripts.oneshot:main'
 
 [tool.poetry.dev-dependencies]
 pytest = ">=7.4.3"

@@ -2,7 +2,7 @@ import os
 import pytest
 import astropy.units as u
 import numpy as np
-from pyvectorial.rust_version import vmc_from_rust_output, vmr_from_rust_output
+from pyvectorial.backends.rust_version import vmc_from_rust_output, vmr_from_rust_output
 
 
 @pytest.fixture

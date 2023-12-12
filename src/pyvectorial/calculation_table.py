@@ -9,7 +9,7 @@ import astropy.units as u
 from astropy.table import QTable
 
 from pyvectorial.vectorial_model_config import VectorialModelConfig, hash_vmc
-from pyvectorial.python_version import PythonModelExtraConfig
+from pyvectorial.backends.python_version import PythonModelExtraConfig
 from pyvectorial.pickle_encoding import pickle_to_base64, unpickle_from_base64
 from pyvectorial.vectorial_model_runner import run_vectorial_model_timed
 

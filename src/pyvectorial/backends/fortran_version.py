@@ -3,6 +3,7 @@ import re
 import subprocess
 import logging as log
 import pathlib
+import importlib
 
 import numpy as np
 import astropy.units as u
@@ -31,11 +32,13 @@ from pyvectorial.vectorial_model_result import (
 
 @dataclass
 class FortranModelExtraConfig:
-    bin_path: pathlib.Path
     fortran_input_filename: pathlib.Path
     fortran_output_filename: pathlib.Path
     r_h: Quantity
     read_sputter: bool = True
+    bin_path: pathlib.Path = importlib.resources.files(
+        package="pyvectorial"
+    ) / pathlib.Path("bin/fvm")
 
 
 def run_fortran_vectorial_model(
@@ -58,9 +61,6 @@ def run_fortran_vectorial_model(
 
     log.info("fortran run complete, return code %s", p2.returncode)
 
-    # return vmr_from_fortran_output(
-    #     extra_config.fortran_output_filename, read_sputter=extra_config.read_sputter
-    # )
     vmr = vmr_from_fortran_output(
         extra_config.fortran_output_filename, read_sputter=extra_config.read_sputter
     )

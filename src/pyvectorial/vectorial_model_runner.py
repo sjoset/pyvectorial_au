@@ -6,15 +6,18 @@ from astropy.units.quantity import Quantity
 
 from pyvectorial.vectorial_model_config import VectorialModelConfig
 from pyvectorial.vectorial_model_result import VectorialModelResult
-from pyvectorial.python_version import (
+from pyvectorial.backends.python_version import (
     PythonModelExtraConfig,
     run_python_vectorial_model,
 )
-from pyvectorial.fortran_version import (
+from pyvectorial.backends.fortran_version import (
     FortranModelExtraConfig,
     run_fortran_vectorial_model,
 )
-from pyvectorial.rust_version import RustModelExtraConfig, run_rust_vectorial_model
+from pyvectorial.backends.rust_version import (
+    RustModelExtraConfig,
+    run_rust_vectorial_model,
+)
 from pyvectorial.pickle_encoding import pickle_to_base64
 
 
