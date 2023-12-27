@@ -8,26 +8,31 @@ from pyvectorial.calculation_table import (
     build_calculation_table,
 )
 from pyvectorial.column_density_abel import column_density_from_abel
-from pyvectorial.input_transforms import apply_input_transform, unapply_input_transform
+from pyvectorial.input_transforms import apply_input_transform
 from pyvectorial.interpolation import (
     interpolate_volume_density,
     interpolate_column_density,
 )
-from pyvectorial.pickle_encoding import pickle_to_base64, unpickle_from_base64
+from pyvectorial.encoding_and_hashing import (
+    pickle_to_base64,
+    unpickle_from_base64,
+    vmc_to_sha256_digest,
+)
 from pyvectorial.timedependentproduction import (
-    TimeDependentProductionType,
-    TimeDependentProduction,
+    make_time_dependence_function,
 )
 from pyvectorial.vectorial_model_config import (
-    Production,
-    Parent,
-    Fragment,
-    Grid,
+    CometProduction,
+    ParentMolecule,
+    FragmentMolecule,
+    VectorialModelGrid,
     VectorialModelConfig,
     hash_vmc,
 )
-from pyvectorial.vectorial_model_config_reader import vectorial_model_config_from_yaml
-from pyvectorial.vectorial_model_config_writer import vm_config_to_yaml
+from pyvectorial.vectorial_model_config_reader import (
+    vectorial_model_config_from_yaml,
+    vectorial_model_config_from_json,
+)
 from pyvectorial.vectorial_model_result import (
     FragmentSputterSpherical,
     FragmentSputterPolar,
@@ -40,4 +45,8 @@ from pyvectorial.vectorial_model_result import (
 from pyvectorial.vectorial_model_runner import (
     run_vectorial_model,
     run_vectorial_model_timed,
+)
+from pyvectorial.vectorial_model_calculation import (
+    VMCalculation,
+    run_vectorial_models_pooled,
 )

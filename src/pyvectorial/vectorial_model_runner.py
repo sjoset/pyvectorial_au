@@ -18,7 +18,7 @@ from pyvectorial.backends.rust_version import (
     RustModelExtraConfig,
     run_rust_vectorial_model,
 )
-from pyvectorial.pickle_encoding import pickle_to_base64
+from pyvectorial.encoding_and_hashing import pickle_to_base64
 
 
 def run_vectorial_model(

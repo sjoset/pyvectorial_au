@@ -4,9 +4,10 @@ import subprocess
 import logging as log
 import pathlib
 import yaml
+import importlib
 from itertools import islice
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 import astropy.units as u
@@ -18,10 +19,10 @@ from pyvectorial.interpolation import (
 
 from pyvectorial.vectorial_model_config import (
     VectorialModelConfig,
-    Production,
-    Parent,
-    Fragment,
-    Grid,
+    CometProduction,
+    ParentMolecule,
+    FragmentMolecule,
+    VectorialModelGrid,
 )
 from pyvectorial.vectorial_model_result import (
     VectorialModelResult,
@@ -36,11 +37,15 @@ from pyvectorial.vectorial_model_result import (
 
 @dataclass
 class RustModelExtraConfig:
-    bin_path: pathlib.Path
     rust_input_filename: pathlib.Path
     rust_output_filename: pathlib.Path
+    bin_path: pathlib.Path = importlib.resources.files(
+        package="pyvectorial"
+    ) / pathlib.Path("bin/rust_vect")
 
 
+# TODO: the input and output filenames should be name after the vmc hash, otherwise parallel rust processes might
+# read a vmc intended for another process!
 def run_rust_vectorial_model(
     vmc: VectorialModelConfig, extra_config: RustModelExtraConfig
 ) -> VectorialModelResult:
@@ -73,9 +78,14 @@ def run_rust_vectorial_model(
     return vmr
 
 
-def vmc_from_rust_output(rust_output_filename: pathlib.Path) -> VectorialModelConfig:
+def get_rust_header(rust_output_filename: pathlib.Path) -> List[str]:
     with open(rust_output_filename, "r") as f:
-        header = list(islice(f, 10))
+        header = list(islice(f, 14))
+    return header
+
+
+def vmc_from_rust_output(rust_output_filename: pathlib.Path) -> VectorialModelConfig:
+    header = get_rust_header(rust_output_filename=rust_output_filename)
 
     base_q = float(re.search(r"Q: ([0-9]\.[0-9]+e[+-]?[0-9]+) mol/s", header[2]).group(1)) / u.s  # type: ignore
     p_tau_d = (
@@ -110,10 +120,17 @@ def vmc_from_rust_output(rust_output_filename: pathlib.Path) -> VectorialModelCo
     )
 
     return VectorialModelConfig(
-        production=Production(base_q=base_q),
-        parent=Parent(tau_d=p_tau_d, tau_T=p_tau_T, v_outflow=v_outflow, sigma=sigma),
-        fragment=Fragment(v_photo=v_photo, tau_T=f_tau_T),
-        grid=Grid(
+        production=CometProduction(base_q_per_s=base_q.to_value(1 / u.s)),
+        parent=ParentMolecule(
+            tau_d_s=p_tau_d.to_value(u.s),
+            tau_T_s=p_tau_T.to_value(u.s),
+            v_outflow_kms=v_outflow.to_value(u.km / u.s),
+            sigma_cm_sq=sigma.to_value(u.cm**2),
+        ),
+        fragment=FragmentMolecule(
+            v_photo_kms=v_photo.to_value(u.km / u.s), tau_T_s=f_tau_T.to_value(u.s)
+        ),
+        grid=VectorialModelGrid(
             radial_points=radial_points,
             angular_points=angular_points,
             radial_substeps=radial_substeps,
@@ -133,18 +150,24 @@ def vmr_from_rust_output(
     if vmc is None:
         vmc = vmc_from_rust_output(rust_output_filename=rust_output_filename)
 
-    # volume density starts at line 12, and has vmc.grid.radial_points entries
-    volume_density_lines = range(11, 11 + vmc.grid.radial_points)
+    # volume density starts at line 14 (counting from 1, not from zero), and has vmc.grid.radial_points entries
+    volume_density_start_line_number = 13
+    volume_density_stop_line_number = (
+        volume_density_start_line_number + vmc.grid.radial_points
+    )
+    volume_density_lines = range(
+        volume_density_start_line_number, volume_density_stop_line_number
+    )
 
     # The +1 skips the line of "r, theta, fragment density"
-    sputter_starts_at = 11 + vmc.grid.radial_points + 1
+    sputter_starts_at = volume_density_stop_line_number + 1
 
     volume_density_grid = []
     volume_density = []
     fragment_sputter_list = []
 
     with open(rust_output_filename) as f:
-        header = list(islice(f, 10))
+        header = list(islice(f, 12))
         f.seek(0)
         for i, line in enumerate(f):
             if i in volume_density_lines:
@@ -160,7 +183,7 @@ def vmr_from_rust_output(
     volume_density *= 1 / u.m**3  # type: ignore
 
     fragment_sputter_array = np.array(fragment_sputter_list).astype(float)
-    rs = fragment_sputter_array[:, 0] * u.m
+    rs = fragment_sputter_array[:, 0] * u.km
     thetas = fragment_sputter_array[:, 1]
     fragment_density = fragment_sputter_array[:, 2] / u.m**3  # type: ignore
     fragment_sputter = FragmentSputterSpherical(
@@ -193,18 +216,19 @@ def write_rust_input_file(
     Only steady production is currently supported in the rust version
     """
 
-    if vmc.production.time_variation_type is not None:
-        log.info("Only steady production is supported in the rust version! Skipping.")
-        return
+    if vmc.production.time_variation is not None:
+        print(
+            "Only steady production is supported in the rust version! Running steady production model instead!."
+        )
 
     rust_config_dict = {
-        "base_q": float(vmc.production.base_q.to_value(1 / u.s)),
-        "p_tau_d": float(vmc.parent.tau_d.to_value(u.s)),
-        "p_tau_t": float(vmc.parent.tau_T.to_value(u.s)),
-        "v_outflow": float(vmc.parent.v_outflow.to_value(u.m / u.s)),
+        "base_q": float(vmc.production.base_q.to_value(1 / u.s)),  # type: ignore
+        "p_tau_d": float(vmc.parent.tau_d.to_value(u.s)),  # type: ignore
+        "p_tau_t": float(vmc.parent.tau_T.to_value(u.s)),  # type: ignore
+        "v_outflow": float(vmc.parent.v_outflow.to_value(u.m / u.s)),  # type: ignore
         "sigma": float(vmc.parent.sigma.to_value(u.m**2)),  # type: ignore
-        "f_tau_t": float(vmc.fragment.tau_T.to_value(u.s)),
-        "v_photo": float(vmc.fragment.v_photo.to_value(u.m / u.s)),
+        "f_tau_t": float(vmc.fragment.tau_T.to_value(u.s)),  # type: ignore
+        "v_photo": float(vmc.fragment.v_photo.to_value(u.m / u.s)),  # type: ignore
         "radial_points": int(vmc.grid.radial_points),
         "angular_points": int(vmc.grid.angular_points),
         "radial_substeps": int(vmc.grid.radial_substeps),

@@ -2,10 +2,14 @@ import copy
 import logging as log
 import sbpy.activity as sba
 from sbpy.data import Phys
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
+from pyvectorial.timedependentproduction import make_time_dependence_function
 
-from pyvectorial.timedependentproduction import TimeDependentProduction
-from pyvectorial.vectorial_model_config import VectorialModelConfig
+# from pyvectorial.timedependentproduction import TimeDependentProduction
+from pyvectorial.vectorial_model_config import (
+    BinnedProductionTimeVariation,
+    VectorialModelConfig,
+)
 from pyvectorial.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterSpherical,
@@ -22,6 +26,25 @@ class PythonModelExtraConfig:
     print_progress: bool
 
 
+def parent_molecule_phys_from_vmc(vmc: VectorialModelConfig) -> Phys:
+    p = vmc.parent
+    p_dict = {
+        "tau_d": p.tau_d,
+        "tau_T": p.tau_T,
+        "v_outflow": p.v_outflow,
+        "sigma": p.sigma,
+    }
+
+    return Phys.from_dict(p_dict)
+
+
+def fragment_molecule_phys_from_vmc(vmc: VectorialModelConfig) -> Phys:
+    f = vmc.fragment
+    f_dict = {"tau_T": f.tau_T, "v_photo": f.v_photo}
+
+    return Phys.from_dict(f_dict)
+
+
 def run_python_vectorial_model(
     vmc: VectorialModelConfig, extra_config: PythonModelExtraConfig
 ) -> VectorialModelResult:
@@ -31,38 +54,30 @@ def run_python_vectorial_model(
     """
 
     # build parent and fragment inputs
-    parent = Phys.from_dict(asdict(vmc.parent))
-    fragment = Phys.from_dict(asdict(vmc.fragment))
+    parent = parent_molecule_phys_from_vmc(vmc=vmc)
+    fragment = fragment_molecule_phys_from_vmc(vmc=vmc)
 
     coma = None
     q_t = None
 
-    # set up q_t here if we have variable production
-    if vmc.production.time_variation_type:
-        t_var_type = vmc.production.time_variation_type
-
-        # handle each type of supported time dependence
-        if t_var_type == "binned":
-            log.debug("Found binned production ...")
-            # call the older-style binned production constructor
-            coma = sba.VectorialModel.binned_production(
-                qs=vmc.production.params["q_t"],  # type: ignore
-                parent=parent,
-                fragment=fragment,
-                ts=vmc.production.params["times_at_productions"],  # type: ignore
-                radial_points=vmc.grid.radial_points,
-                angular_points=vmc.grid.angular_points,
-                radial_substeps=vmc.grid.radial_substeps,
-                print_progress=extra_config.print_progress,
-            )
-        elif t_var_type in ["gaussian", "sine wave", "square pulse"]:
-            prod_var = TimeDependentProduction(t_var_type)
-            q_t = prod_var.create_production(**vmc.production.params)  # type: ignore
-
-    # if the binned constructor above hasn't been called, we have work to do
-    if coma is None:
-        # did we come up with a valid time dependence?
-        if q_t is None:
+    # handle binned production as a special case
+    if isinstance(vmc.production.time_variation, BinnedProductionTimeVariation):
+        # call the binned production constructor that mimics the fortran version
+        coma = sba.VectorialModel.binned_production(
+            qs=vmc.production.time_variation.q,  # type: ignore
+            parent=parent,
+            fragment=fragment,
+            ts=vmc.production.time_variation.times_at_productions,  # type: ignore
+            radial_points=vmc.grid.radial_points,
+            angular_points=vmc.grid.angular_points,
+            radial_substeps=vmc.grid.radial_substeps,
+            print_progress=extra_config.print_progress,
+        )
+    else:
+        if vmc.production.time_variation:
+            q_t = make_time_dependence_function(vmc=vmc)
+        else:
+            q_t = None
             log.info(
                 "No valid time dependence specified, assuming steady production of %s",
                 vmc.production.base_q,

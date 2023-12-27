@@ -172,11 +172,10 @@ def write_fortran_input_file(
     as long as the production is steady
     """
 
-    if vmc.production.time_variation_type is not None:
-        log.info(
-            "Only steady production is currently supported for producing fortran input files! Skipping."
+    if vmc.production.time_variation is not None:
+        print(
+            "Only steady production is currently supported for producing fortran input files! Running steady production model instead!"
         )
-        return
 
     log.debug(
         "Writing input config file %s to feed fortran vectorial model...",
@@ -199,22 +198,22 @@ def write_fortran_input_file(
         with redirect_stdout(out_file):
             print(f"{comet_name}")
             print(f"{ec.r_h.to(u.AU).value}  {delta}")
-            # length of production array: only base production rate for 60 days
+            # length of production array: only base production rate for 120 days
             print("1")
-            print(f"{vmc.production.base_q.to(1/u.s).value}  60.0")
+            print(f"{vmc.production.base_q.to_value(1/u.s)}  120.0")
             # fill in dummy values for the rest of the array
             for _ in range(19):
-                print("0.0 61")
+                print("0.0 121")
             # parent info - speed, total & photo lifetime, destruction level
-            print(f"{vmc.parent.v_outflow.to(u.km/u.s).value}")
-            print(f"{vmc.parent.tau_T.to(u.s).value}")
-            print(f"{vmc.parent.tau_d.to(u.s).value}")
+            print(f"{vmc.parent.v_outflow.to_value(u.km/u.s)}")
+            print(f"{vmc.parent.tau_T.to_value(u.s)}")
+            print(f"{vmc.parent.tau_d.to_value(u.s)}")
             print(f"{vmc.grid.parent_destruction_level*100}")
             # fragment info - gfactor, speed, total lifetime, destruction level
             print(f"{fragment_name}")
             print(f"{g_factor}")
-            print(f"{vmc.fragment.v_photo.to(u.km/u.s).value}")
-            print(f"{vmc.fragment.tau_T.to(u.s).value}")
+            print(f"{vmc.fragment.v_photo.to_value(u.km/u.s)}")
+            print(f"{vmc.fragment.tau_T.to_value(u.s)}")
             print(f"{vmc.grid.fragment_destruction_level*100}")
             # Custom aperture size, unused for our purposes so these are dummy values
             print("  1.3       3.6 ")

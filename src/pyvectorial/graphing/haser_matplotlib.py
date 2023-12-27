@@ -4,7 +4,7 @@ import sbpy.activity as sba
 
 # from matplotlib import cm
 
-from pyvectorial.haser_params import HaserParams
+from pyvectorial.haser.haser_params import HaserParams
 
 # from pyvectorial.haser_fits import HaserScaleLengthSearchResult
 

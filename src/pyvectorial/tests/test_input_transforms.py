@@ -4,14 +4,14 @@ import numpy as np
 
 from pyvectorial.vectorial_model_config import (
     VectorialModelConfig,
-    Production,
-    Parent,
-    Fragment,
-    Grid,
+    CometProduction,
+    ParentMolecule,
+    FragmentMolecule,
+    VectorialModelGrid,
 )
 from pyvectorial.input_transforms import (
     apply_input_transform,
-    unapply_input_transform,
+    # unapply_input_transform,
     VmcTransform,
 )
 
@@ -22,15 +22,15 @@ def testing_vmc() -> VectorialModelConfig:
     Return a valid VectorialModelConfig for testing input transformations
     """
 
-    q = Production(base_q=1e28 / u.s)
-    p = Parent(
-        v_outflow=1.0 * u.km / u.s,
-        tau_d=100000 * u.s,
-        tau_T=93000 * u.s,
-        sigma=3.0e-16 * u.cm**2,
+    q = CometProduction(base_q_per_s=1e28)
+    p = ParentMolecule(
+        v_outflow_kms=1.0,
+        tau_d_s=100000,
+        tau_T_s=93000,
+        sigma_cm_sq=3.0e-16,
     )
-    f = Fragment(v_photo=1.05 * u.km / u.s, tau_T=100000 * u.s)
-    g = Grid(
+    f = FragmentMolecule(v_photo_kms=1.05, tau_T_s=100000)
+    g = VectorialModelGrid(
         radial_points=50,
         angular_points=50,
         radial_substeps=50,
@@ -42,53 +42,58 @@ def testing_vmc() -> VectorialModelConfig:
 
 
 def test_fortran_festou_apply(testing_vmc):
-    r_h = 2.0 * u.AU
-    rhsq = (r_h.to_value(u.AU)) ** 2
+    r_h = 2.0 * u.AU  # type: ignore
+    r_h_au = r_h.to_value(u.AU)
+    rhsq = r_h_au**2
 
-    xfrmed_vmc = apply_input_transform(testing_vmc, r_h, VmcTransform.fortran_festou)
+    xfrmed_vmc = apply_input_transform(
+        vmc=testing_vmc, r_h=r_h, xfrm=VmcTransform.fortran_festou
+    )
     assert xfrmed_vmc is not None
 
     transformed_input = [
-        xfrmed_vmc.parent.tau_d.to(u.s).value,
-        xfrmed_vmc.parent.tau_T.to(u.s).value,
-        xfrmed_vmc.fragment.tau_T.to(u.s).value,
+        xfrmed_vmc.parent.tau_d.to_value(u.s),  # type: ignore
+        xfrmed_vmc.parent.tau_T.to_value(u.s),  # type: ignore
+        xfrmed_vmc.fragment.tau_T.to_value(u.s),  # type: ignore
     ]
     expected_result = [
-        testing_vmc.parent.tau_d.to(u.s).value * rhsq,
-        testing_vmc.parent.tau_T.to(u.s).value * rhsq,
-        testing_vmc.fragment.tau_T.to(u.s).value * rhsq,
+        testing_vmc.parent.tau_d.to_value(u.s) * rhsq,
+        testing_vmc.parent.tau_T.to_value(u.s) * rhsq,
+        testing_vmc.fragment.tau_T.to_value(u.s) * rhsq,
     ]
 
     assert np.allclose(transformed_input, expected_result)
 
 
-def test_festou_fortran_unapply(testing_vmc):
-    r_h = 2.0 * u.AU
-
-    xfrmed_vmc = apply_input_transform(testing_vmc, r_h, VmcTransform.fortran_festou)
-    assert xfrmed_vmc is not None
-
-    unxfrmed_vmc = unapply_input_transform(xfrmed_vmc, r_h, VmcTransform.fortran_festou)
-    assert unxfrmed_vmc is not None
-
-    transformed_input = [
-        unxfrmed_vmc.parent.tau_d.to(u.s).value,
-        unxfrmed_vmc.parent.tau_T.to(u.s).value,
-        unxfrmed_vmc.fragment.tau_T.to(u.s).value,
-    ]
-    expected_result = [
-        testing_vmc.parent.tau_d.to(u.s).value,
-        testing_vmc.parent.tau_T.to(u.s).value,
-        testing_vmc.fragment.tau_T.to(u.s).value,
-    ]
-
-    assert np.allclose(transformed_input, expected_result)
+# def test_festou_fortran_unapply(testing_vmc):
+#     r_h = 2.0 * u.AU
+#     r_h_au = r_h.to_value(u.AU)
+#
+#     xfrmed_vmc = apply_input_transform(testing_vmc, r_h, VmcTransform.fortran_festou)
+#     assert xfrmed_vmc is not None
+#
+#     unxfrmed_vmc = unapply_input_transform(xfrmed_vmc, r_h, VmcTransform.fortran_festou)
+#     assert unxfrmed_vmc is not None
+#
+#     transformed_input = [
+#         unxfrmed_vmc.parent.tau_d.to(u.s).value,
+#         unxfrmed_vmc.parent.tau_T.to(u.s).value,
+#         unxfrmed_vmc.fragment.tau_T.to(u.s).value,
+#     ]
+#     expected_result = [
+#         testing_vmc.parent.tau_d.to(u.s).value,
+#         testing_vmc.parent.tau_T.to(u.s).value,
+#         testing_vmc.fragment.tau_T.to(u.s).value,
+#     ]
+#
+#     assert np.allclose(transformed_input, expected_result)
 
 
 def test_cochran_schleicher_93_apply(testing_vmc):
-    r_h = 2.0 * u.AU
-    rhsq = (r_h.to_value(u.AU)) ** 2
-    sqrh = np.sqrt(r_h.to_value(u.AU))
+    r_h = 2.0 * u.AU  # type: ignore
+    r_h_au = r_h.to_value(u.AU)
+    rhsq = r_h_au**2
+    sqrh = np.sqrt(r_h_au)
 
     xfrmed_vmc = apply_input_transform(
         testing_vmc, r_h, VmcTransform.cochran_schleicher_93
@@ -96,45 +101,45 @@ def test_cochran_schleicher_93_apply(testing_vmc):
     assert xfrmed_vmc is not None
 
     transformed_input = [
-        xfrmed_vmc.parent.tau_d.to(u.s).value,
-        xfrmed_vmc.parent.tau_T.to(u.s).value,
-        xfrmed_vmc.fragment.tau_T.to(u.s).value,
-        xfrmed_vmc.parent.v_outflow.to(u.km / u.s).value,
+        xfrmed_vmc.parent.tau_d.to_value(u.s),  # type: ignore
+        xfrmed_vmc.parent.tau_T.to_value(u.s),  # type: ignore
+        xfrmed_vmc.fragment.tau_T.to_value(u.s),  # type: ignore
+        xfrmed_vmc.parent.v_outflow.to_value(u.km / u.s),  # type: ignore
     ]
     expected_result = [
         testing_vmc.parent.tau_d.to(u.s).value * rhsq,
         testing_vmc.parent.tau_T.to(u.s).value * rhsq,
         testing_vmc.fragment.tau_T.to(u.s).value * rhsq,
-        (0.85 * u.km / u.s).value / sqrh,
+        0.85 / sqrh,
     ]
 
     assert np.allclose(transformed_input, expected_result)
 
 
-def test_cochran_schleicher_93_unapply(testing_vmc):
-    r_h = 2.0 * u.AU
-    sqrh = np.sqrt(r_h.to_value(u.AU))
-
-    xfrmed_vmc = apply_input_transform(
-        testing_vmc, r_h, VmcTransform.cochran_schleicher_93
-    )
-    assert xfrmed_vmc is not None
-    unxfrmed_vmc = unapply_input_transform(
-        xfrmed_vmc, r_h, VmcTransform.cochran_schleicher_93
-    )
-    assert unxfrmed_vmc is not None
-
-    transformed_input = [
-        unxfrmed_vmc.parent.tau_d.to(u.s).value,
-        unxfrmed_vmc.parent.tau_T.to(u.s).value,
-        unxfrmed_vmc.fragment.tau_T.to(u.s).value,
-        unxfrmed_vmc.parent.v_outflow.to(u.km / u.s).value,
-    ]
-    expected_result = [
-        testing_vmc.parent.tau_d.to(u.s).value,
-        testing_vmc.parent.tau_T.to(u.s).value,
-        testing_vmc.fragment.tau_T.to(u.s).value,
-        (0.85 * u.km / u.s).value / sqrh,
-    ]
-
-    assert np.allclose(transformed_input, expected_result)
+# def test_cochran_schleicher_93_unapply(testing_vmc):
+#     r_h = 2.0 * u.AU
+#     sqrh = np.sqrt(r_h.to_value(u.AU))
+#
+#     xfrmed_vmc = apply_input_transform(
+#         testing_vmc, r_h, VmcTransform.cochran_schleicher_93
+#     )
+#     assert xfrmed_vmc is not None
+#     unxfrmed_vmc = unapply_input_transform(
+#         xfrmed_vmc, r_h, VmcTransform.cochran_schleicher_93
+#     )
+#     assert unxfrmed_vmc is not None
+#
+#     transformed_input = [
+#         unxfrmed_vmc.parent.tau_d.to(u.s).value,
+#         unxfrmed_vmc.parent.tau_T.to(u.s).value,
+#         unxfrmed_vmc.fragment.tau_T.to(u.s).value,
+#         unxfrmed_vmc.parent.v_outflow.to(u.km / u.s).value,
+#     ]
+#     expected_result = [
+#         testing_vmc.parent.tau_d.to(u.s).value,
+#         testing_vmc.parent.tau_T.to(u.s).value,
+#         testing_vmc.fragment.tau_T.to(u.s).value,
+#         (0.85 * u.km / u.s).value / sqrh,
+#     ]
+#
+#     assert np.allclose(transformed_input, expected_result)

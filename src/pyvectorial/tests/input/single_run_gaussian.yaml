@@ -1,31 +1,31 @@
 production:
   # parent production in molecules/s
-  base_q: 1.e+28
+  base_q_per_s: 1.e+28
 
-  time_variation_type: "gaussian"
-  params:
+  time_variation:
+    time_variation_type: "gaussian"
     # amplitude in molecules/s
-    amplitude: 3.e28
+    amplitude_per_s: 3.e28
     # std_dev in hours
-    std_dev: 20.0
+    std_dev_hrs: 20.0
     # time at peak in hours ago
-    t_max: 24.0
+    t_max_hrs: 24.0
 
 parent:
   # outflow velocity of parent, km/s
-  v_outflow: 0.85
+  v_outflow_kms: 0.85
   # total lifetime of parent molecule, seconds
-  tau_T: 45000
+  tau_T_s: 45000
   # dissociative lifetime of molecule, seconds
-  tau_d: 50000
+  tau_d_s: 50000
   # approximate cross section for most molecules we care about, cm^2
-  sigma: 3.0e-16
+  sigma_cm_sq: 3.0e-16
 
 fragment:
   # velocity of fragment, km/s
-  v_photo: 1.05
+  v_photo_kms: 1.05
   # total lifetime of fragment molecule, seconds
-  tau_T: 129000
+  tau_T_s: 129000
 
 grid:
   radial_points: 50

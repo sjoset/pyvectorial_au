@@ -2,15 +2,17 @@ import time
 import logging as log
 import importlib.metadata as impm
 from multiprocessing import Pool
-from typing import List
+from typing import List, Union
 from functools import partial
 
 import astropy.units as u
 from astropy.table import QTable
+from pyvectorial.backends.fortran_version import FortranModelExtraConfig
+from pyvectorial.backends.rust_version import RustModelExtraConfig
 
 from pyvectorial.vectorial_model_config import VectorialModelConfig, hash_vmc
 from pyvectorial.backends.python_version import PythonModelExtraConfig
-from pyvectorial.pickle_encoding import pickle_to_base64, unpickle_from_base64
+from pyvectorial.encoding_and_hashing import pickle_to_base64, unpickle_from_base64
 from pyvectorial.vectorial_model_runner import run_vectorial_model_timed
 
 
@@ -26,7 +28,9 @@ with additional columns added by the function 'add_vmc_columns()' below detailin
 def build_calculation_table(
     vmc_set: List[VectorialModelConfig],
     parallelism: int = 1,
-    extra_config=PythonModelExtraConfig(print_progress=False),
+    extra_config: Union[
+        PythonModelExtraConfig, RustModelExtraConfig, FortranModelExtraConfig
+    ] = PythonModelExtraConfig(print_progress=False),
 ) -> QTable:
     """
     Take a set of model configs, run them, and return QTable with results of input vmc,

@@ -36,10 +36,18 @@ mybwhite = "#e7e7ea"
 # TODO: port over the column density inflection point marker in the matplotlib version?  Collision sphere marker
 # function as well?
 
+_default_vdens_units = 1 / u.m**3  # type: ignore
+
 
 def plotly_volume_density_plot(
-    vmr: VectorialModelResult, dist_units=u.m, vdens_units=1 / u.m**3, **kwargs
+    vmr: VectorialModelResult,
+    dist_units=u.m,
+    vdens_units=_default_vdens_units,
+    **kwargs
 ) -> go.Scatter:
+    assert isinstance(vmr.volume_density, u.Quantity)
+    assert isinstance(vmr.volume_density_grid, u.Quantity)
+
     xs = vmr.volume_density_grid.to(dist_units)
     ys = vmr.volume_density.to(vdens_units)
 
@@ -48,7 +56,10 @@ def plotly_volume_density_plot(
 
 
 def plotly_volume_density_interpolation_plot(
-    vmr: VectorialModelResult, dist_units=u.m, vdens_units=1 / u.m**3, **kwargs
+    vmr: VectorialModelResult,
+    dist_units=u.m,
+    vdens_units=_default_vdens_units,
+    **kwargs
 ) -> go.Scatter:
     # model's interpolation function needs meters in, gives output in 1/m**3
     ys = (
@@ -131,7 +142,9 @@ def plotly_fragment_sputter_contour_plot(
     vmr,
     dist_units=u.km,
     sputter_units=1 / u.cm**3,
-    within_r=10000 * u.km,
+    within_r=2000 * u.km,
+    min_r=0 * u.km,
+    max_angle=np.pi,
     mirrored=False,
     show_outflow_axis=True,
     **kwargs
@@ -141,22 +154,28 @@ def plotly_fragment_sputter_contour_plot(
     if mirrored:
         fragment_sputter = mirror_fragment_sputter(fragment_sputter)
 
+    within_max_angle = fragment_sputter.thetas < max_angle
+    fragment_sputter.rs = fragment_sputter.rs[within_max_angle]
+    fragment_sputter.thetas = fragment_sputter.thetas[within_max_angle]
+    fragment_sputter.fragment_density = fragment_sputter.fragment_density[
+        within_max_angle
+    ]
+
     if isinstance(fragment_sputter, FragmentSputterPolar) or isinstance(
         fragment_sputter, FragmentSputterSpherical
     ):
         fragment_sputter = fragment_sputter_to_cartesian(fragment_sputter)
 
     # if mirrored:
-    #     fragment_sputter = mirror_sputter(fragment_sputter)
-    #
-    # if isinstance(fragment_sputter, FragmentSputterPolar):
-    #     fragment_sputter = cartesian_sputter_from_polar(fragment_sputter)
+    #     fragment_sputter = mirror_fragment_sputter(fragment_sputter)
 
     xs = fragment_sputter.xs
     ys = fragment_sputter.ys
     zs = fragment_sputter.fragment_density
 
-    within_limit = np.sqrt(xs**2 + ys**2) < within_r
+    within_limit = np.logical_and(
+        np.sqrt(xs**2 + ys**2) < within_r, np.sqrt(xs**2 + ys**2) > min_r
+    )
     xs = xs[within_limit].to_value(dist_units)
     ys = ys[within_limit].to_value(dist_units)
     zs = zs[within_limit].to_value(sputter_units)
@@ -184,7 +203,8 @@ def plotly_fragment_sputter_plot(
     vmr,
     dist_units=u.m,
     sputter_units=1 / u.m**3,
-    within_r=1000 * u.km,
+    within_r=5000 * u.km,
+    min_r=0 * u.km,
     mirrored=False,
     show_outflow_axis=True,
     **kwargs
@@ -209,7 +229,14 @@ def plotly_fragment_sputter_plot(
     ys = fragment_sputter.ys
     zs = fragment_sputter.fragment_density
 
-    within_limit = np.sqrt(xs**2 + ys**2) < within_r
+    # above_limit = np.sqrt(xs**2 + ys**2) > min_r
+    # xs = xs[above_limit]
+    # ys = ys[above_limit]
+    # zs = zs[above_limit]
+
+    within_limit = np.logical_and(
+        np.sqrt(xs**2 + ys**2) < within_r, np.sqrt(xs**2 + ys**2) > min_r
+    )
     if not len(xs):
         print("Radial cutoff for fragment sputter too small!  Nothing to plot.")
         return (None, None, None)

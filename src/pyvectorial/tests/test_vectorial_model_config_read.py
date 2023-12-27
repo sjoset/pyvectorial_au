@@ -27,6 +27,10 @@ def test_single_run_parent_outflow(vmc_set_single):
     assert vmc_set_single.parent.v_outflow == (0.85 * u.km / u.s)  # type: ignore
 
 
+def test_single_run_parent_tau_T(vmc_set_single):
+    assert vmc_set_single.parent.tau_T == (45000 * u.s)
+
+
 def test_single_run_parent_tau_d(vmc_set_single):
     assert vmc_set_single.parent.tau_d == (50000 * u.s)
 

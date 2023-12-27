@@ -57,28 +57,32 @@ def test_volume_density_last(vmr_from_rust):
 
 
 def test_fragment_sputter_r_first(vmr_from_rust):
-    assert np.isclose(vmr_from_rust.fragment_sputter.rs[0], 1.0 * u.m)  # type: ignore
+    assert np.isclose(vmr_from_rust.fragment_sputter.rs[0], 1.0 * u.km)  # type: ignore
 
 
 def test_fragment_sputter_r_last(vmr_from_rust):
-    assert np.isclose(vmr_from_rust.fragment_sputter.rs[-1], 2.6938633e5 * u.m)  # type: ignore
+    assert np.isclose(vmr_from_rust.fragment_sputter.rs[-1], 1.8719500607868414372205734e6 * u.km)  # type: ignore
 
 
 def test_fragment_sputter_theta_first(vmr_from_rust):
-    assert np.isclose(vmr_from_rust.fragment_sputter.thetas[0], 1.963495408e-2)
+    assert np.isclose(
+        vmr_from_rust.fragment_sputter.thetas[0], 1.9634954084936206974987272e-2
+    )
 
 
 def test_fragment_sputter_theta_last(vmr_from_rust):
-    assert np.isclose(vmr_from_rust.fragment_sputter.thetas[-1], 2.3365595e0)
+    assert np.isclose(
+        vmr_from_rust.fragment_sputter.thetas[-1], 3.1219576995048567980006737e0
+    )
 
 
 def test_fragment_sputter_density_first(vmr_from_rust):
     assert np.isclose(
-        vmr_from_rust.fragment_sputter.fragment_density[0], 5.06522815e12 / u.m**3  # type: ignore
+        vmr_from_rust.fragment_sputter.fragment_density[0], 5.0652281546602539062500000e12 / u.m**3  # type: ignore
     )
 
 
 def test_fragment_sputter_density_last(vmr_from_rust):
     assert np.isclose(
-        vmr_from_rust.fragment_sputter.fragment_density[-1], 4.481935312e0 / u.m**3  # type: ignore
+        vmr_from_rust.fragment_sputter.fragment_density[-1], 2.3438452027657809202163594e-24 / u.m**3  # type: ignore
     )

@@ -4,10 +4,11 @@ from functools import partial
 
 import numpy as np
 import astropy.units as u
-import scipy.interpolate
+
+# import scipy.interpolate
 from scipy import special, optimize
 
-from pyvectorial.haser_params import HaserParams
+from pyvectorial.haser.haser_params import HaserParams
 
 
 """

@@ -14,8 +14,8 @@ def interpolate_volume_density(vmr: VectorialModelResult) -> None:
         return
 
     vmr.volume_density_interpolation = CubicSpline(
-        vmr.volume_density_grid.to_value(u.m),
-        vmr.volume_density.to_value(1 / u.m**3),
+        vmr.volume_density_grid.to_value(u.m),  # type: ignore
+        vmr.volume_density.to_value(1 / u.m**3),  # type: ignore
         bc_type="natural",
     )
 
@@ -34,7 +34,7 @@ def interpolate_column_density(vmr: VectorialModelResult) -> None:
         return
 
     vmr.column_density_interpolation = CubicSpline(
-        vmr.column_density_grid.to_value(u.m),
-        vmr.column_density.to_value(1 / u.m**2),
+        vmr.column_density_grid.to_value(u.m),  # type: ignore
+        vmr.column_density.to_value(1 / u.m**2),  # type: ignore
         bc_type="natural",
     )
