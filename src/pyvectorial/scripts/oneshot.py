@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 from typing import Union
 
 import numpy as np
+import pandas as pd
 import astropy.units as u
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -183,7 +184,7 @@ def fragment_sputter_plot_plotly(vmr: pyv.VectorialModelResult):
         vmr,
         dist_units=u.km,
         sputter_units=1 / u.cm**3,
-        within_r=15 * u.km,
+        within_r=15000 * u.km,
         mirrored=True,
         marker_colorscale="Viridis",
     )
@@ -319,13 +320,9 @@ def main():
         vmc=vmc_unxfrmed, r_h=r_h, xfrm=VmcTransform.cochran_schleicher_93
     )
 
-    # vmc_set = [vmc, vmc_unxfrmed, vmc, vmc_unxfrmed]
     vmc_set = [vmc, vmc_unxfrmed]
 
     ec = get_backend_model_selection()
-
-    # out_table = pyv.build_calculation_table(vmc_set, extra_config=ec)  # type: ignore
-    # vmr = pyv.unpickle_from_base64(out_table["b64_encoded_vmr"][0])  # type: ignore
 
     vmcalc_list = pyv.run_vectorial_models_pooled(
         vmc_set=vmc_set, extra_config=ec, parallelism=2
@@ -344,10 +341,20 @@ def main():
     print(df)
     new_vmcalc_list = dataframe_to_vmcalc_list(df)
     print(new_vmcalc_list[0].vmr.coma_radius)
+    for v, d in zip(vmcalc_list, df["vmc_sha256_digest"]):
+        print(f"{v.execution_time_s}\tsha256: {d}")
 
-    # volume_and_column_density_plots_plotly(vmr=df.iloc[0].vmr)
+    df.to_csv("dfout.csv")
+
+    new_df = pd.read_csv("dfout.csv")
+    print(new_df["vmc_sha256_digest"])
+
+    nvmcl = dataframe_to_vmcalc_list(new_df)
+    print(nvmcl[0].vmr.coma_radius)
+
+    # volume_and_column_density_plots_plotly(vmr=nvmcl[0].vmr)
     # volume_and_column_density_plots_plotly(vmr=vmcp_new[0].vmr)
-    # fragment_sputter_plot_plotly(vmr=vmr)
+    fragment_sputter_plot_plotly(vmr=nvmcl[0].vmr)
     # fragment_sputter_contour_plot_plotly(vmr=vmr)
 
     # volume_and_column_density_plots_mpl(vmr=vmr)

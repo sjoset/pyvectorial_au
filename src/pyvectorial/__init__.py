@@ -49,4 +49,8 @@ from pyvectorial.vectorial_model_runner import (
 from pyvectorial.vectorial_model_calculation import (
     VMCalculation,
     run_vectorial_models_pooled,
+    store_vmcalculation_list,
+    load_vmcalculation_list,
+    vmcalc_list_to_dataframe,
+    dataframe_to_vmcalc_list,
 )

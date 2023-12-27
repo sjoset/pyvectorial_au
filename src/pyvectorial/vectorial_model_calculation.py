@@ -9,12 +9,16 @@ from multiprocessing import Pool
 import pandas as pd
 import astropy.units as u
 import dill
-from pydantic import TypeAdapter, parse_obj_as
+from pydantic import TypeAdapter
 
 from pyvectorial.backends.fortran_version import FortranModelExtraConfig
 from pyvectorial.backends.python_version import PythonModelExtraConfig
 from pyvectorial.backends.rust_version import RustModelExtraConfig
-from pyvectorial.encoding_and_hashing import pickle_to_base64, unpickle_from_base64
+from pyvectorial.encoding_and_hashing import (
+    pickle_to_base64,
+    unpickle_from_base64,
+    vmc_to_sha256_digest,
+)
 from pyvectorial.vectorial_model_config import VectorialModelConfig
 from pyvectorial.vectorial_model_result import VectorialModelResult
 from pyvectorial.vectorial_model_runner import run_vectorial_model_timed
@@ -95,7 +99,7 @@ def vmcalc_list_to_dataframe(vmcalc_list: List[VMCalculation]):
     df_list = []
 
     for vmcalc in vmcalc_list:
-        # flatten the model_dump dictionary into column names like production.base_q_per_s with json_normalize()
+        # flatten the nested model_dump dictionary into column names like production.base_q_per_s with json_normalize()
         vmc_df = pd.json_normalize(vmcalc.vmc.model_dump())
         vmr_etc_df = pd.DataFrame(
             [
@@ -104,6 +108,7 @@ def vmcalc_list_to_dataframe(vmcalc_list: List[VMCalculation]):
                     "execution_time_s": vmcalc.execution_time_s,
                     "vectorial_model_backend": vmcalc.vectorial_model_backend,
                     "vectorial_model_version": vmcalc.vectorial_model_version,
+                    "vmc_sha256_digest": vmc_to_sha256_digest(vmcalc.vmc),
                 }
             ]
         )
