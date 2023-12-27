@@ -5,6 +5,7 @@ import logging as log
 import pathlib
 import yaml
 import importlib
+import tempfile
 from itertools import islice
 from dataclasses import dataclass
 from typing import List, Optional
@@ -12,6 +13,7 @@ from typing import List, Optional
 import numpy as np
 import astropy.units as u
 from pyvectorial.column_density_abel import column_density_from_abel
+from pyvectorial.encoding_and_hashing import vmc_to_sha256_digest
 from pyvectorial.interpolation import (
     interpolate_column_density,
     interpolate_volume_density,
@@ -37,15 +39,11 @@ from pyvectorial.vectorial_model_result import (
 
 @dataclass
 class RustModelExtraConfig:
-    rust_input_filename: pathlib.Path
-    rust_output_filename: pathlib.Path
-    bin_path: pathlib.Path = importlib.resources.files(
+    bin_path: pathlib.Path = importlib.resources.files(  # type: ignore
         package="pyvectorial"
     ) / pathlib.Path("bin/rust_vect")
 
 
-# TODO: the input and output filenames should be name after the vmc hash, otherwise parallel rust processes might
-# read a vmc intended for another process!
 def run_rust_vectorial_model(
     vmc: VectorialModelConfig, extra_config: RustModelExtraConfig
 ) -> VectorialModelResult:
@@ -53,29 +51,80 @@ def run_rust_vectorial_model(
     Given path to rust vmodel binary, runs the given model configuration
     """
 
+    # create the temp files and close them to allow the rust executable sole access
+    rust_input = tempfile.NamedTemporaryFile(delete=False)
+    rust_input.close()
+    rust_output = tempfile.NamedTemporaryFile(delete=False)
+    rust_output.close()
+
+    rust_input_filename = pathlib.Path(rust_input.name)
+    rust_output_filename = pathlib.Path(rust_output.name)
+
     log.debug(
         "Writing input config file %s to feed rust vectorial model...",
-        extra_config.rust_input_filename,
+        rust_input_filename,
     )
-    write_rust_input_file(vmc, extra_config.rust_input_filename)
+    write_rust_input_file(vmc, rust_input_filename)
 
     log.info("Running rust version at %s ...", extra_config.bin_path)
     p1 = subprocess.run(
         args=[
             str(extra_config.bin_path),
-            str(extra_config.rust_input_filename),
-            str(extra_config.rust_output_filename),
+            str(rust_input_filename),
+            str(rust_output_filename),
         ],
         stdout=open(os.devnull, "wb"),
     )
     log.info("rust vmodel run complete, return code %s", p1.returncode)
 
-    vmr = vmr_from_rust_output(extra_config.rust_output_filename, vmc)
+    vmr = vmr_from_rust_output(rust_output_filename, vmc)
+
+    # clean up the temp files
+    os.unlink(rust_input_filename)
+    os.unlink(rust_output_filename)
 
     interpolate_volume_density(vmr)
     column_density_from_abel(vmr)
     interpolate_column_density(vmr)
     return vmr
+
+
+# def run_rust_vectorial_model(
+#     vmc: VectorialModelConfig, extra_config: RustModelExtraConfig
+# ) -> VectorialModelResult:
+#     """
+#     Given path to rust vmodel binary, runs the given model configuration
+#     """
+#     rust_input_filename = pathlib.Path(vmc_to_sha256_digest(vmc=vmc)).with_suffix(
+#         ".yaml"
+#     )
+#     rust_output_filename = pathlib.Path(vmc_to_sha256_digest(vmc=vmc)).with_suffix(
+#         ".txt"
+#     )
+#
+#     log.debug(
+#         "Writing input config file %s to feed rust vectorial model...",
+#         rust_input_filename,
+#     )
+#     write_rust_input_file(vmc, rust_input_filename)
+#
+#     log.info("Running rust version at %s ...", extra_config.bin_path)
+#     p1 = subprocess.run(
+#         args=[
+#             str(extra_config.bin_path),
+#             str(rust_input_filename),
+#             str(rust_output_filename),
+#         ],
+#         stdout=open(os.devnull, "wb"),
+#     )
+#     log.info("rust vmodel run complete, return code %s", p1.returncode)
+#
+#     vmr = vmr_from_rust_output(rust_output_filename, vmc)
+#
+#     interpolate_volume_density(vmr)
+#     column_density_from_abel(vmr)
+#     interpolate_column_density(vmr)
+#     return vmr
 
 
 def get_rust_header(rust_output_filename: pathlib.Path) -> List[str]:
@@ -232,8 +281,8 @@ def write_rust_input_file(
         "radial_points": int(vmc.grid.radial_points),
         "angular_points": int(vmc.grid.angular_points),
         "radial_substeps": int(vmc.grid.radial_substeps),
-        "parent_destruction_level": 0.99,
-        "fragment_destruction_level": 0.95,
+        "parent_destruction_level": float(vmc.grid.parent_destruction_level),
+        "fragment_destruction_level": float(vmc.grid.fragment_destruction_level),
     }
 
     with open(rust_input_filename, "w") as out_file:

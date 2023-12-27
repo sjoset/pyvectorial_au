@@ -5,6 +5,7 @@ import sys
 import pathlib
 import contextlib
 import logging as log
+import tempfile
 from argparse import ArgumentParser
 from typing import Union
 
@@ -61,8 +62,8 @@ fortranbin = pathlib.Path(
 model_backend_configs = {
     "sbpy (python)": PythonModelExtraConfig(print_progress=False),
     "rustvec (rust)": RustModelExtraConfig(
-        rust_input_filename=pathlib.Path("rust_in.yaml"),
-        rust_output_filename=pathlib.Path("rust_out.txt"),
+        # rust_input_filename=pathlib.Path("rust_in.yaml"),
+        # rust_output_filename=pathlib.Path("rust_out.txt"),
     ),
     "vm (fortran)": FortranModelExtraConfig(
         fortran_input_filename=pathlib.Path("fparam.dat"),
@@ -320,7 +321,7 @@ def main():
         vmc=vmc_unxfrmed, r_h=r_h, xfrm=VmcTransform.cochran_schleicher_93
     )
 
-    vmc_set = [vmc, vmc_unxfrmed]
+    vmc_set = [vmc, vmc_unxfrmed, vmc, vmc_unxfrmed, vmc, vmc_unxfrmed]
 
     ec = get_backend_model_selection()
 
@@ -344,17 +345,29 @@ def main():
     for v, d in zip(vmcalc_list, df["vmc_sha256_digest"]):
         print(f"{v.execution_time_s}\tsha256: {d}")
 
-    df.to_csv("dfout.csv")
+    df.to_csv("dfout.csv", index=False)
 
     new_df = pd.read_csv("dfout.csv")
     print(new_df["vmc_sha256_digest"])
 
     nvmcl = dataframe_to_vmcalc_list(new_df)
-    print(nvmcl[0].vmr.coma_radius)
+    for x in nvmcl:
+        print(
+            f" {x.vmr.coma_radius=}, {x.vmr.max_grid_radius=}, {x.vmr.max_grid_radius / x.vmr.coma_radius}"
+        )
 
+    # tf = tempfile.NamedTemporaryFile(delete=False)
+    # print(tf.name)
+    # tf.write(b"aoeu\n")
+    # tf.close()
+    # with open(tf.name, "r") as f:
+    #     print(f.read())
+    # os.unlink(tf.name)
+
+    # print(os.path.exists(tf.name))
     # volume_and_column_density_plots_plotly(vmr=nvmcl[0].vmr)
     # volume_and_column_density_plots_plotly(vmr=vmcp_new[0].vmr)
-    fragment_sputter_plot_plotly(vmr=nvmcl[0].vmr)
+    # fragment_sputter_plot_plotly(vmr=nvmcl[0].vmr)
     # fragment_sputter_contour_plot_plotly(vmr=vmr)
 
     # volume_and_column_density_plots_mpl(vmr=vmr)
