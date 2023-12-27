@@ -1,4 +1,5 @@
 import numpy as np
+from pydantic import BaseModel
 import sbpy.activity as sba
 
 from dataclasses import dataclass
@@ -45,6 +46,9 @@ class VectorialModelResult:
     collision_sphere_radius: Quantity
     max_grid_radius: Quantity
     coma_radius: Quantity
+    # collision_sphere_radius: float
+    # max_grid_radius: float
+    # coma_radius: float
 
     column_density_grid: Optional[np.ndarray] = None
     column_density: Optional[np.ndarray] = None

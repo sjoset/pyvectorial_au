@@ -4,7 +4,6 @@ import os
 import sys
 import pathlib
 import contextlib
-import hashlib
 import logging as log
 from argparse import ArgumentParser
 from typing import Union
@@ -20,6 +19,7 @@ import pyvectorial as pyv
 from pyvectorial.backends.python_version import PythonModelExtraConfig
 from pyvectorial.backends.rust_version import RustModelExtraConfig
 from pyvectorial.backends.fortran_version import FortranModelExtraConfig
+from pyvectorial.encoding_and_hashing import vmc_to_sha256_digest
 from pyvectorial.graphing.vm_matplotlib import (
     mpl_column_density_interpolation_plot,
     mpl_column_density_plot,
@@ -38,7 +38,12 @@ from pyvectorial.graphing.vm_plotly import (
     plotly_volume_density_plot,
 )
 from pyvectorial.input_transforms import VmcTransform, apply_input_transform
-from pyvectorial.vectorial_model_config import hash_vmc
+from pyvectorial.vectorial_model_calculation import (
+    dataframe_to_vmcalc_list,
+    load_vmcalculation_list,
+    store_vmcalculation_list,
+    vmcalc_list_to_dataframe,
+)
 
 
 rustbin = pathlib.Path(
@@ -53,7 +58,7 @@ fortranbin = pathlib.Path(
 )
 
 model_backend_configs = {
-    "sbpy (python)": PythonModelExtraConfig(print_progress=True),
+    "sbpy (python)": PythonModelExtraConfig(print_progress=False),
     "rustvec (rust)": RustModelExtraConfig(
         rust_input_filename=pathlib.Path("rust_in.yaml"),
         rust_output_filename=pathlib.Path("rust_out.txt"),
@@ -309,59 +314,45 @@ def main():
         return 1
 
     # r_h = 5.92 * u.AU  # type: ignore
-    r_h = 1.0 * u.AU  # type: ignore
+    r_h = 2.0 * u.AU  # type: ignore
     vmc = apply_input_transform(
         vmc=vmc_unxfrmed, r_h=r_h, xfrm=VmcTransform.cochran_schleicher_93
     )
-    print(hash_vmc(vmc))
-    print(hash(vmc))
-    m = hashlib.sha256()
-    m.update(vmc.model_dump_json().encode())
-    print(m.hexdigest())
 
-    vmc_set = [vmc]
+    # vmc_set = [vmc, vmc_unxfrmed, vmc, vmc_unxfrmed]
+    vmc_set = [vmc, vmc_unxfrmed]
 
     ec = get_backend_model_selection()
 
-    out_table = pyv.build_calculation_table(vmc_set, extra_config=ec)  # type: ignore
-    vmr = pyv.unpickle_from_base64(out_table["b64_encoded_vmr"][0])  # type: ignore
-
-    print(hash_vmc(vmc))
-    print(hash(vmc))
-    n = hashlib.sha256()
-    n.update(vmc.model_dump_json().encode())
-    print(n.hexdigest())
+    # out_table = pyv.build_calculation_table(vmc_set, extra_config=ec)  # type: ignore
+    # vmr = pyv.unpickle_from_base64(out_table["b64_encoded_vmr"][0])  # type: ignore
 
     vmcalc_list = pyv.run_vectorial_models_pooled(
         vmc_set=vmc_set, extra_config=ec, parallelism=2
     )
-    print(vmcalc_list)
 
-    # volume_and_column_density_plots_plotly(vmr=vmr)
+    result_storage_path_stem = pathlib.Path(args.parameterfile[0]).stem
+    result_storage_path = pathlib.Path(result_storage_path_stem).with_suffix(".vmcl")
+
+    store_vmcalculation_list(vmcalc_list, result_storage_path)
+    vmcp_new = load_vmcalculation_list(result_storage_path)
+
+    for vmcalc in vmcp_new:
+        print(vmc_to_sha256_digest(vmcalc.vmc))
+
+    df = vmcalc_list_to_dataframe(vmcp_new)
+    print(df)
+    new_vmcalc_list = dataframe_to_vmcalc_list(df)
+    print(new_vmcalc_list[0].vmr.coma_radius)
+
+    # volume_and_column_density_plots_plotly(vmr=df.iloc[0].vmr)
+    # volume_and_column_density_plots_plotly(vmr=vmcp_new[0].vmr)
     # fragment_sputter_plot_plotly(vmr=vmr)
     # fragment_sputter_contour_plot_plotly(vmr=vmr)
 
     # volume_and_column_density_plots_mpl(vmr=vmr)
     # fragment_sputter_plot_mpl(vmr=vmr)
     # fragment_sputter_contour_plot_mpl(vmr=vmr)
-
-    # print(f"vmc dict: {vmc.dict()}")
-    # vmc_json = vmc.model_dump_json()
-    # print(f"vmc json: {vmc_json}")
-    #
-    # with open("vmc.json", "w") as f:
-    #     json.dump(vmc_json, f)
-    #
-    # with open("vmc.json", "r") as f:
-    #     vmc_read_json = json.load(f)
-    #
-    # print(vmc_read_json)
-    # vmc_read = VectorialModelConfig.model_validate_json(vmc_read_json)
-    # print(vmc_read)
-    #
-    # new_out_table = pyv.build_calculation_table([vmc_read], extra_config=ec)
-    # new_vmr = pyv.unpickle_from_base64(out_table["b64_encoded_vmr"][0])
-    # print(new_vmr)
 
     # r_kms = vmr.column_density_grid.to_value(u.km)
     # cds = vmr.column_density.to_value(1 / u.cm**2)
