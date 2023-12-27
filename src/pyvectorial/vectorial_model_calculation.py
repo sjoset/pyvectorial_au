@@ -33,8 +33,6 @@ class VMCalculation:
     vectorial_model_version: str
 
 
-# TODO: fortran version should not be allowed to be run in parallel - the input and output filenames
-# are fixed, so any parallel i/o gets overwritten by multiple processes and turns into garbage
 def run_vectorial_models_pooled(
     vmc_set: List[VectorialModelConfig],
     extra_config: Union[
@@ -42,6 +40,12 @@ def run_vectorial_models_pooled(
     ] = PythonModelExtraConfig(print_progress=False),
     parallelism: int = 1,
 ) -> List[VMCalculation]:
+    # The fortran version uses fixed file names for input and output, so running multiple in parallel
+    # would clobber each other's input and output files
+    if isinstance(extra_config, FortranModelExtraConfig):
+        print("Forcing no parallelism for fortran version!")
+        parallelism = 1
+
     pool_start_time = time.time()
 
     run_vmodel_timed_mappable_func = partial(
@@ -55,7 +59,7 @@ def run_vectorial_models_pooled(
     vmrs = [x[0] for x in model_results]
     execution_times = [x[1] for x in model_results]
 
-    # TODO: move this to the three backend files: config -> str
+    # TODO: move this to the three backend files: get_python_vectorial_model_version() -> str   etc.
     if isinstance(extra_config, PythonModelExtraConfig):
         vectorial_model_backend = "python"
         vectorial_model_version = impm.version("sbpy")

@@ -3,10 +3,6 @@ from importlib.metadata import version
 __version__ = version("pyvectorial")
 
 from pyvectorial.aperture import UncenteredRectangularAperture, total_number_in_aperture
-from pyvectorial.calculation_table import (
-    add_vmc_columns,
-    build_calculation_table,
-)
 from pyvectorial.column_density_abel import column_density_from_abel
 from pyvectorial.input_transforms import apply_input_transform
 from pyvectorial.interpolation import (
