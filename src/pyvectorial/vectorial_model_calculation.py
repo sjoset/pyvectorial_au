@@ -5,7 +5,6 @@ import importlib.metadata as impm
 from typing import List, Union
 from functools import partial
 from multiprocessing import Pool
-from numpy import nan
 
 import pandas as pd
 import astropy.units as u
@@ -34,7 +33,6 @@ class VMCalculation:
     vectorial_model_version: str
 
 
-# TODO: use vmc hash to name rust file input and output
 def run_vectorial_models_pooled(
     vmc_set: List[VectorialModelConfig],
     extra_config: Union[

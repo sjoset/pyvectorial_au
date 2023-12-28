@@ -1,5 +1,6 @@
 import time
-from typing import Tuple, Union
+import pathlib
+from typing import Tuple, Union, TypeAlias, Optional
 
 import astropy.units as u
 from astropy.units.quantity import Quantity
@@ -20,12 +21,15 @@ from pyvectorial.backends.rust_version import (
 )
 from pyvectorial.encoding_and_hashing import pickle_to_base64
 
+EncodedVectorialModelResult: TypeAlias = str
+
 
 def run_vectorial_model(
     vmc: VectorialModelConfig,
     extra_config: Union[
         PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
     ],
+    model_cache_dir: Optional[pathlib.Path] = None,
 ) -> VectorialModelResult:
     """
     Takes a VectorialModelConfig and runs the python, rust, or fortran models as specified and returns a VectorialModelResult
@@ -46,7 +50,7 @@ def run_vectorial_model_timed(
     extra_config: Union[
         PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
     ],
-) -> Tuple[str, Quantity]:
+) -> Tuple[EncodedVectorialModelResult, Quantity]:
     """
     Service function that takes a vmc, runs a model, and returns results + timing information.
 
