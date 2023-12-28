@@ -23,7 +23,7 @@ from pyvectorial.vectorial_model_result import (
 
 @dataclass
 class PythonModelExtraConfig:
-    print_progress: bool
+    print_progress: bool = False
 
 
 def parent_molecule_phys_from_vmc(vmc: VectorialModelConfig) -> Phys:

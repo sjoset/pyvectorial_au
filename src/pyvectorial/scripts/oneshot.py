@@ -3,9 +3,7 @@
 import os
 import sys
 import pathlib
-import contextlib
 import logging as log
-import tempfile
 from argparse import ArgumentParser
 from typing import Union
 
@@ -14,7 +12,6 @@ import pandas as pd
 import astropy.units as u
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
 import matplotlib.pyplot as plt
 
 import pyvectorial as pyv
@@ -48,23 +45,9 @@ from pyvectorial.vectorial_model_calculation import (
 )
 
 
-rustbin = pathlib.Path(
-    pathlib.Path.home(),
-    pathlib.Path(
-        "repos/aucomet/vectorial_model/src/model_language_comparison/bin/rust_vect"
-    ),
-)
-fortranbin = pathlib.Path(
-    pathlib.Path.home(),
-    pathlib.Path("repos/aucomet/vectorial_model/src/model_language_comparison/bin/fvm"),
-)
-
 model_backend_configs = {
-    "sbpy (python)": PythonModelExtraConfig(print_progress=False),
-    "rustvec (rust)": RustModelExtraConfig(
-        # rust_input_filename=pathlib.Path("rust_in.yaml"),
-        # rust_output_filename=pathlib.Path("rust_out.txt"),
-    ),
+    "sbpy (python)": PythonModelExtraConfig(),
+    "rustvec (rust)": RustModelExtraConfig(),
     "vm (fortran)": FortranModelExtraConfig(
         fortran_input_filename=pathlib.Path("fparam.dat"),
         fortran_output_filename=pathlib.Path("fort.16"),
@@ -100,11 +83,6 @@ def process_args():
         log.basicConfig(format="%(levelname)s: %(message)s")
 
     return args
-
-
-def remove_file_silent_fail(f: pathlib.Path) -> None:
-    with contextlib.suppress(FileNotFoundError):
-        os.unlink(f)
 
 
 def get_backend_model_selection() -> (
@@ -144,8 +122,8 @@ def fragment_sputter_contour_plot_plotly(vmr: pyv.VectorialModelResult):
         vmr,
         dist_units=u.km,
         sputter_units=1 / u.cm**3,
-        within_r=10000 * u.km,
-        min_r=1000 * u.km,
+        within_r=10000 * u.km,  # type: ignore
+        min_r=1000 * u.km,  # type: ignore
         max_angle=np.pi / 16,
         mirrored=True,
     )
@@ -153,7 +131,7 @@ def fragment_sputter_contour_plot_plotly(vmr: pyv.VectorialModelResult):
     if outflow:
         fig.add_trace(outflow)
 
-    fig.data[1].line.color = myblue
+    fig.data[1].line.color = myblue  # type: ignore
 
     fig.update_layout(
         scene=dict(
@@ -185,7 +163,7 @@ def fragment_sputter_plot_plotly(vmr: pyv.VectorialModelResult):
         vmr,
         dist_units=u.km,
         sputter_units=1 / u.cm**3,
-        within_r=15000 * u.km,
+        within_r=15000 * u.km,  # type: ignore
         mirrored=True,
         marker_colorscale="Viridis",
     )
@@ -193,8 +171,8 @@ def fragment_sputter_plot_plotly(vmr: pyv.VectorialModelResult):
     if outflow:
         fig.add_trace(outflow)
 
-    fig.data[1].line.color = myblue
-    max_coord *= 1.1
+    fig.data[1].line.color = myblue  # type: ignore
+    max_coord *= 1.1  # type: ignore
 
     fig.update_layout(
         scene=dict(
@@ -276,8 +254,7 @@ def volume_and_column_density_plots_plotly(vmr: pyv.VectorialModelResult):
 
 
 def volume_and_column_density_plots_mpl(vmr: pyv.VectorialModelResult):
-    fig, axs = plt.subplots(1, 2, sharex=True, layout="constrained")
-    # mpl_fragment_sputter_plot(vmr, axs[0])
+    _, axs = plt.subplots(1, 2, sharex=True, layout="constrained")
     mpl_volume_density_plot(vmr=vmr, ax=axs[0], dist_units=u.km, alpha=0.5)
     mpl_volume_density_interpolation_plot(vmr=vmr, ax=axs[0], dist_units=u.km)
     axs[0].set_xscale("log")
@@ -290,16 +267,16 @@ def volume_and_column_density_plots_mpl(vmr: pyv.VectorialModelResult):
 
 
 def fragment_sputter_plot_mpl(vmr: pyv.VectorialModelResult):
-    fig, axs = plt.subplots(1, 2, layout="constrained", subplot_kw={"projection": "3d"})
-    mpl_fragment_sputter_plot(vmr=vmr, ax=axs[0], within_r=2000 * u.km)
+    _, axs = plt.subplots(1, 2, layout="constrained", subplot_kw={"projection": "3d"})
+    mpl_fragment_sputter_plot(vmr=vmr, ax=axs[0], within_r=2000 * u.km)  # type: ignore
     mpl_column_density_plot_3d(vmr=vmr, ax=axs[1])
     plt.show()
 
 
 def fragment_sputter_contour_plot_mpl(vmr: pyv.VectorialModelResult):
-    fig, axs = plt.subplots(1, 1, layout="constrained")
+    _, axs = plt.subplots(1, 1, layout="constrained")
     mpl_fragment_sputter_contour_plot(
-        vmr=vmr, ax=axs, within_r=400 * u.km, max_angle=np.pi / 8, mirrored=True
+        vmr=vmr, ax=axs, within_r=400 * u.km, max_angle=np.pi / 8, mirrored=True  # type: ignore
     )
     plt.show()
 
@@ -356,15 +333,6 @@ def main():
             f" {x.vmr.coma_radius=}, {x.vmr.max_grid_radius=}, {x.vmr.max_grid_radius / x.vmr.coma_radius}"
         )
 
-    # tf = tempfile.NamedTemporaryFile(delete=False)
-    # print(tf.name)
-    # tf.write(b"aoeu\n")
-    # tf.close()
-    # with open(tf.name, "r") as f:
-    #     print(f.read())
-    # os.unlink(tf.name)
-
-    # print(os.path.exists(tf.name))
     # volume_and_column_density_plots_plotly(vmr=nvmcl[0].vmr)
     # volume_and_column_density_plots_plotly(vmr=vmcp_new[0].vmr)
     # fragment_sputter_plot_plotly(vmr=nvmcl[0].vmr)
@@ -373,21 +341,6 @@ def main():
     # volume_and_column_density_plots_mpl(vmr=vmr)
     # fragment_sputter_plot_mpl(vmr=vmr)
     # fragment_sputter_contour_plot_mpl(vmr=vmr)
-
-    # r_kms = vmr.column_density_grid.to_value(u.km)
-    # cds = vmr.column_density.to_value(1 / u.cm**2)
-    # df = pd.DataFrame({"r_kms": r_kms, "column_density_per_cm2": cds})
-    #
-    # output_dir = pathlib.Path("output")
-    # output_file_stem = pathlib.Path(args.parameterfile[0]).stem
-    # output_file_name = pathlib.Path(output_file_stem + ".fits")
-    # output_file_path = output_dir / output_file_name
-    # # output_fits_file = pathlib.Path(args.output_fits[0])
-    # remove_file_silent_fail(output_file_path)
-    # log.info("Table building complete, writing results to %s ...", output_file_path)
-    # out_table.write(output_file_path, format="fits")
-    #
-    # df.to_csv(output_file_path.with_suffix(".csv"), index=False)
 
 
 if __name__ == "__main__":

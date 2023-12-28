@@ -36,7 +36,7 @@ class FortranModelExtraConfig:
     fortran_output_filename: pathlib.Path
     r_h: Quantity
     read_sputter: bool = True
-    bin_path: pathlib.Path = importlib.resources.files(
+    bin_path: pathlib.Path = importlib.resources.files(  # type: ignore
         package="pyvectorial"
     ) / pathlib.Path("bin/fvm")
 
