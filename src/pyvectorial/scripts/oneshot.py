@@ -307,6 +307,7 @@ def main():
         parallelism=2,
         vm_cache_dir=pathlib.Path("."),
     )
+    print(f"Number of resulting models: {len(vmcalc_list)}")
     # print(vmcalc_list)
 
     # vmcalc_list = pyv.run_vectorial_models_pooled(

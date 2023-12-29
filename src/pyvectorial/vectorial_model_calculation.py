@@ -194,18 +194,13 @@ def rvm_parallel(
             parallelism=parallelism,
             vm_cache_dir=vm_cache_dir,
         )
+    print("Caching done, running...")
 
     # The fortran version uses fixed file names for input and output, so running multiple in parallel
     # would clobber each other's input and output files
     if isinstance(extra_config, FortranModelExtraConfig):
         print("Forcing no parallelism for fortran version!")
         parallelism = 1
-
-    vmc_hashes = [vmc_to_sha256_digest(x) for x in vmc_set]
-    unique_vmc_hashes = set(vmc_hashes)
-    reduced_vmc_set = [
-        vmc_set[vmc_hashes.index(unique_hash)] for unique_hash in unique_vmc_hashes
-    ]
 
     pool_start_time = time.time()
 
@@ -214,8 +209,7 @@ def rvm_parallel(
     )
 
     with Pool(parallelism) as vm_pool:
-        # vmcalc_list = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)
-        vmcalc_list = vm_pool.map(run_vmodel_timed_mappable_func, reduced_vmc_set)
+        vmcalc_list = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)
 
     pool_end_time = time.time()
     print(f"Total results assembly time: {pool_end_time - pool_start_time} seconds")
@@ -242,6 +236,7 @@ def rvm_parallel_force_unique_models(
     reduced_vmc_set = [
         vmc_set[vmc_hashes.index(unique_hash)] for unique_hash in unique_vmc_hashes
     ]
+    print(f"Number of unique models to be run and cached: {len(reduced_vmc_set)}")
 
     pool_start_time = time.time()
 
