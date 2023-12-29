@@ -2,26 +2,61 @@ from dataclasses import dataclass
 import pathlib
 import time
 import importlib.metadata as impm
-from typing import List, Union
+from typing import List, Optional, Union, TypeAlias
 from functools import partial
 from multiprocessing import Pool
 
 import pandas as pd
-import astropy.units as u
 import dill
 from pydantic import TypeAdapter
 
-from pyvectorial.backends.fortran_version import FortranModelExtraConfig
-from pyvectorial.backends.python_version import PythonModelExtraConfig
-from pyvectorial.backends.rust_version import RustModelExtraConfig
+from pyvectorial.backends.fortran_version import (
+    FortranModelExtraConfig,
+    run_fortran_vectorial_model,
+)
+from pyvectorial.backends.python_version import (
+    PythonModelExtraConfig,
+    run_python_vectorial_model,
+)
+from pyvectorial.backends.rust_version import (
+    RustModelExtraConfig,
+    run_rust_vectorial_model,
+)
+from pyvectorial.db.vectorial_model_cache import (
+    VMCached,
+    get_vm_cache_db_session,
+    initialize_vectorial_model_cache,
+)
 from pyvectorial.encoding_and_hashing import (
+    compress_vmr_string,
+    decompress_vmr_string,
     pickle_to_base64,
     unpickle_from_base64,
     vmc_to_sha256_digest,
 )
 from pyvectorial.vectorial_model_config import VectorialModelConfig
 from pyvectorial.vectorial_model_result import VectorialModelResult
-from pyvectorial.vectorial_model_runner import run_vectorial_model_timed
+
+# from pyvectorial.vectorial_model_runner import run_vectorial_model_timed
+
+EncodedVectorialModelResult: TypeAlias = str
+
+
+@dataclass
+class EncodedVMCalculation:
+    """
+    Uses a pickled VectorialModelResult (using the dill library) because python multiprocessing wants
+    to pickle return values to send them back to the main calling process.  The coma can't be
+    pickled by the stock python pickler so we have to encode it ourselves with dill. This allows us
+    to return this data structure from a job started in parallel, where returning VMCalculation directly
+    would fail.
+    """
+
+    vmc: VectorialModelConfig
+    evmr: EncodedVectorialModelResult
+    execution_time_s: float
+    vectorial_model_backend: str
+    vectorial_model_version: str
 
 
 @dataclass
@@ -32,7 +67,139 @@ class VMCalculation:
     vectorial_model_backend: str
     vectorial_model_version: str
 
+    @classmethod
+    def from_encoded(cls, evmc: EncodedVMCalculation):
+        return cls(
+            vmc=evmc.vmc,
+            vmr=unpickle_from_base64(evmc.evmr),
+            execution_time_s=evmc.execution_time_s,
+            vectorial_model_backend=evmc.vectorial_model_backend,
+            vectorial_model_version=evmc.vectorial_model_version,
+        )
 
+
+def get_saved_model_from_cache(
+    vmc: VectorialModelConfig,
+) -> Optional[EncodedVMCalculation]:
+    hashed_vmc = vmc_to_sha256_digest(vmc=vmc)
+    print(f"Looking up hashed vmc {hashed_vmc} in db ...")
+    session = get_vm_cache_db_session()
+    if session is not None:
+        res = session.get(VMCached, hashed_vmc)
+        if res:
+            evmc = EncodedVMCalculation(
+                vmc=vmc,
+                evmr=decompress_vmr_string(res.vmr_b64_enc_zip),
+                execution_time_s=res.execution_time_s,
+                vectorial_model_backend=res.vectorial_model_backend,
+                vectorial_model_version=res.vectorial_model_version,
+            )
+            return evmc
+        else:
+            print("Not found in db.")
+    else:
+        print("No db session, skipping.")
+        return None
+
+
+def save_model_to_cache(evmc: EncodedVMCalculation) -> None:
+    hashed_vmc = vmc_to_sha256_digest(vmc=evmc.vmc)
+    print(f"Saving model with hashed vmc {hashed_vmc} in db ...")
+    requested_session = get_vm_cache_db_session()
+    if requested_session is not None:
+        with requested_session as session:
+            to_db = VMCached(
+                vmc_hash=hashed_vmc,
+                vmr_b64_enc_zip=compress_vmr_string(evmc.evmr),
+                execution_time_s=evmc.execution_time_s,
+                vectorial_model_backend=evmc.vectorial_model_backend,
+                vectorial_model_version=evmc.vectorial_model_version,
+            )
+            session.add(to_db)
+            session.commit()
+    else:
+        print("No db session, skipping.")
+
+
+def rvm_single(
+    vmc: VectorialModelConfig,
+    extra_config: Union[
+        PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
+    ] = PythonModelExtraConfig(print_progress=False),
+    vm_cache_dir: Optional[pathlib.Path] = None,
+) -> EncodedVMCalculation:
+    # attempt to load model if we find it in the database
+    if vm_cache_dir:
+        # start up a db engine in this process
+        initialize_vectorial_model_cache(vectorial_model_cache_dir=vm_cache_dir)
+        evmc = get_saved_model_from_cache(vmc=vmc)
+        if evmc:
+            return evmc
+
+    model_start_time = time.time()
+    model_function = None
+
+    if isinstance(extra_config, PythonModelExtraConfig):
+        vectorial_model_backend = "python"
+        vectorial_model_version = impm.version("sbpy")
+        model_function = run_python_vectorial_model
+    elif isinstance(extra_config, FortranModelExtraConfig):
+        vectorial_model_backend = "fortran"
+        vectorial_model_version = "1.0.0"
+        model_function = run_fortran_vectorial_model
+    elif isinstance(extra_config, RustModelExtraConfig):
+        vectorial_model_backend = "rust"
+        vectorial_model_version = "0.1.0"
+        model_function = run_rust_vectorial_model
+
+    vmr = model_function(vmc=vmc, extra_config=extra_config)  # type: ignore
+    execution_time_s = time.time() - model_start_time
+
+    evmc = EncodedVMCalculation(
+        vmc=vmc,
+        evmr=pickle_to_base64(vmr),
+        execution_time_s=execution_time_s,
+        vectorial_model_backend=vectorial_model_backend,
+        vectorial_model_version=vectorial_model_version,
+    )
+
+    # save model into db cache
+    if vm_cache_dir:
+        save_model_to_cache(evmc=evmc)
+
+    return evmc
+
+
+def rvm_parallel(
+    vmc_set: List[VectorialModelConfig],
+    extra_config: Union[
+        PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
+    ] = PythonModelExtraConfig(print_progress=False),
+    parallelism: int = 1,
+    vm_cache_dir: Optional[pathlib.Path] = None,
+) -> List[VMCalculation]:
+    # The fortran version uses fixed file names for input and output, so running multiple in parallel
+    # would clobber each other's input and output files
+    if isinstance(extra_config, FortranModelExtraConfig):
+        print("Forcing no parallelism for fortran version!")
+        parallelism = 1
+
+    pool_start_time = time.time()
+
+    run_vmodel_timed_mappable_func = partial(
+        rvm_single, extra_config=extra_config, vm_cache_dir=vm_cache_dir
+    )
+
+    with Pool(parallelism) as vm_pool:
+        vmcalc_list = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)
+
+    pool_end_time = time.time()
+    print(f"Total run time: {pool_end_time - pool_start_time} seconds")
+
+    return [VMCalculation.from_encoded(x) for x in vmcalc_list]
+
+
+# deprecate
 def run_vectorial_models_pooled(
     vmc_set: List[VectorialModelConfig],
     extra_config: Union[

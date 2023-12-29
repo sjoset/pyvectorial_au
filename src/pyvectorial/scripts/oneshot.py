@@ -8,7 +8,6 @@ from argparse import ArgumentParser
 from typing import Union
 
 import numpy as np
-import pandas as pd
 import astropy.units as u
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -18,7 +17,6 @@ import pyvectorial as pyv
 from pyvectorial.backends.python_version import PythonModelExtraConfig
 from pyvectorial.backends.rust_version import RustModelExtraConfig
 from pyvectorial.backends.fortran_version import FortranModelExtraConfig
-from pyvectorial.encoding_and_hashing import vmc_to_sha256_digest
 from pyvectorial.graphing.vm_matplotlib import (
     mpl_column_density_interpolation_plot,
     mpl_column_density_plot,
@@ -38,10 +36,11 @@ from pyvectorial.graphing.vm_plotly import (
 )
 from pyvectorial.input_transforms import VmcTransform, apply_input_transform
 from pyvectorial.vectorial_model_calculation import (
-    dataframe_to_vmcalc_list,
-    load_vmcalculation_list,
-    store_vmcalculation_list,
-    vmcalc_list_to_dataframe,
+    # dataframe_to_vmcalc_list,
+    # load_vmcalculation_list,
+    rvm_parallel,
+    # store_vmcalculation_list,
+    # vmcalc_list_to_dataframe,
 )
 
 
@@ -298,42 +297,50 @@ def main():
         vmc=vmc_unxfrmed, r_h=r_h, xfrm=VmcTransform.cochran_schleicher_93
     )
 
-    vmc_set = [vmc, vmc_unxfrmed, vmc, vmc_unxfrmed, vmc, vmc_unxfrmed]
+    # vmc_set = [vmc, vmc_unxfrmed, vmc, vmc_unxfrmed, vmc, vmc_unxfrmed]
+    vmc_set = [vmc, vmc_unxfrmed] * 18
 
     ec = get_backend_model_selection()
-
-    vmcalc_list = pyv.run_vectorial_models_pooled(
-        vmc_set=vmc_set, extra_config=ec, parallelism=2
+    vmcalc_list = rvm_parallel(
+        vmc_set=vmc_set,
+        extra_config=ec,
+        parallelism=2,
+        vm_cache_dir=pathlib.Path("."),
     )
+    # print(vmcalc_list)
 
-    result_storage_path_stem = pathlib.Path(args.parameterfile[0]).stem
-    result_storage_path = pathlib.Path(result_storage_path_stem).with_suffix(".vmcl")
+    # vmcalc_list = pyv.run_vectorial_models_pooled(
+    #     vmc_set=vmc_set, extra_config=ec, parallelism=2
+    # )
+    #
+    # result_storage_path_stem = pathlib.Path(args.parameterfile[0]).stem
+    # result_storage_path = pathlib.Path(result_storage_path_stem).with_suffix(".vmcl")
+    #
+    # store_vmcalculation_list(vmcalc_list, result_storage_path)
+    # vmcp_new = load_vmcalculation_list(result_storage_path)
+    #
+    # for vmcalc in vmcp_new:
+    #     print(vmc_to_sha256_digest(vmcalc.vmc))
+    #
+    # df = vmcalc_list_to_dataframe(vmcp_new)
+    # print(df)
+    # new_vmcalc_list = dataframe_to_vmcalc_list(df)
+    # print(new_vmcalc_list[0].vmr.coma_radius)
+    # for v, d in zip(vmcalc_list, df["vmc_sha256_digest"]):
+    #     print(f"{v.execution_time_s}\tsha256: {d}")
+    #
+    # df.to_csv("dfout.csv", index=False)
+    #
+    # new_df = pd.read_csv("dfout.csv")
+    # print(new_df["vmc_sha256_digest"])
+    #
+    # nvmcl = dataframe_to_vmcalc_list(new_df)
+    # for x in nvmcl:
+    #     print(
+    #         f" {x.vmr.coma_radius=}, {x.vmr.max_grid_radius=}, {x.vmr.max_grid_radius / x.vmr.coma_radius}"
+    #     )
 
-    store_vmcalculation_list(vmcalc_list, result_storage_path)
-    vmcp_new = load_vmcalculation_list(result_storage_path)
-
-    for vmcalc in vmcp_new:
-        print(vmc_to_sha256_digest(vmcalc.vmc))
-
-    df = vmcalc_list_to_dataframe(vmcp_new)
-    print(df)
-    new_vmcalc_list = dataframe_to_vmcalc_list(df)
-    print(new_vmcalc_list[0].vmr.coma_radius)
-    for v, d in zip(vmcalc_list, df["vmc_sha256_digest"]):
-        print(f"{v.execution_time_s}\tsha256: {d}")
-
-    df.to_csv("dfout.csv", index=False)
-
-    new_df = pd.read_csv("dfout.csv")
-    print(new_df["vmc_sha256_digest"])
-
-    nvmcl = dataframe_to_vmcalc_list(new_df)
-    for x in nvmcl:
-        print(
-            f" {x.vmr.coma_radius=}, {x.vmr.max_grid_radius=}, {x.vmr.max_grid_radius / x.vmr.coma_radius}"
-        )
-
-    # volume_and_column_density_plots_plotly(vmr=nvmcl[0].vmr)
+    volume_and_column_density_plots_plotly(vmr=vmcalc_list[0].vmr)
     # volume_and_column_density_plots_plotly(vmr=vmcp_new[0].vmr)
     # fragment_sputter_plot_plotly(vmr=nvmcl[0].vmr)
     # fragment_sputter_contour_plot_plotly(vmr=vmr)

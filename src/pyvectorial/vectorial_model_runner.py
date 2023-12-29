@@ -29,7 +29,6 @@ def run_vectorial_model(
     extra_config: Union[
         PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
     ],
-    model_cache_dir: Optional[pathlib.Path] = None,
 ) -> VectorialModelResult:
     """
     Takes a VectorialModelConfig and runs the python, rust, or fortran models as specified and returns a VectorialModelResult

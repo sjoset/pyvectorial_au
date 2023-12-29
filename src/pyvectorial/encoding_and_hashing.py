@@ -1,3 +1,4 @@
+import zlib
 import hashlib
 import dill as pickle
 import codecs
@@ -24,3 +25,11 @@ def vmc_to_sha256_digest(vmc: VectorialModelConfig) -> VectorialModelConfigHash:
     h.update(vmc.model_dump_json().encode())
 
     return h.hexdigest()
+
+
+def compress_vmr_string(vmr: str) -> bytes:
+    return zlib.compress(vmr.encode())
+
+
+def decompress_vmr_string(vmr_compressed: bytes) -> str:
+    return zlib.decompress(vmr_compressed).decode()

@@ -23,7 +23,6 @@ from pyvectorial.vectorial_model_config import (
     FragmentMolecule,
     VectorialModelGrid,
     VectorialModelConfig,
-    hash_vmc,
 )
 from pyvectorial.vectorial_model_config_reader import (
     vectorial_model_config_from_yaml,
