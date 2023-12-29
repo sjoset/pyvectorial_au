@@ -292,13 +292,13 @@ def main():
         return 1
 
     # r_h = 5.92 * u.AU  # type: ignore
-    r_h = 2.0 * u.AU  # type: ignore
+    r_h = 3.0 * u.AU  # type: ignore
     vmc = apply_input_transform(
         vmc=vmc_unxfrmed, r_h=r_h, xfrm=VmcTransform.cochran_schleicher_93
     )
 
     # vmc_set = [vmc, vmc_unxfrmed, vmc, vmc_unxfrmed, vmc, vmc_unxfrmed]
-    vmc_set = [vmc, vmc_unxfrmed] * 18
+    vmc_set = [vmc, vmc_unxfrmed] * 5
 
     ec = get_backend_model_selection()
     vmcalc_list = rvm_parallel(
@@ -342,7 +342,7 @@ def main():
 
     volume_and_column_density_plots_plotly(vmr=vmcalc_list[0].vmr)
     # volume_and_column_density_plots_plotly(vmr=vmcp_new[0].vmr)
-    # fragment_sputter_plot_plotly(vmr=nvmcl[0].vmr)
+    # fragment_sputter_plot_plotly(vmr=vmcalc_list[0].vmr)
     # fragment_sputter_contour_plot_plotly(vmr=vmr)
 
     # volume_and_column_density_plots_mpl(vmr=vmr)

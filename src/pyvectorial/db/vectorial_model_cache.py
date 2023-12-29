@@ -3,8 +3,15 @@
 import pathlib
 from typing import Optional
 
-from sqlalchemy import Engine, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
+from sqlalchemy import Engine, NullPool, create_engine
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    Session,
+    mapped_column,
+    scoped_session,
+    sessionmaker,
+)
 
 # globals
 vm_cache_engine: Optional[Engine] = None
@@ -18,11 +25,13 @@ def initialize_vectorial_model_cache(vectorial_model_cache_dir: pathlib.Path) ->
         return
 
     full_db_path = vectorial_model_cache_dir / pathlib.Path("vmcache.sqlite3")
-    vm_cache_engine = create_engine(f"sqlite:///{full_db_path}")
+    vm_cache_engine = create_engine(f"sqlite:///{full_db_path}", poolclass=NullPool)
 
     VMCachedBase.metadata.create_all(bind=vm_cache_engine)
 
-    vm_cache_session = sessionmaker(vm_cache_engine)
+    session_factory = sessionmaker(vm_cache_engine)
+    # vm_cache_session = sessionmaker(vm_cache_engine)
+    vm_cache_session = scoped_session(session_factory)
 
 
 def get_vm_cache_db_session() -> Optional[Session]:
@@ -140,26 +149,22 @@ class VMCached(VMCachedBase):
 # def get_cached_model(vmc_hash: )
 
 
-def main():
-    engine = get_db_engine(pathlib.Path("."))
-    create_vmcache_tables(engine)
-
-    # add_some_entries(engine)
-
-    with Session(engine) as session:
-        x = session.get(VMCached, "a313ecd")
-        if x is not None:
-            print(
-                f"Found entry with hash: {x.vmc_hash}",
-                "val: ",
-                decompress_vmr_string(x.vmr_b64_enc_zip),
-            )
-
-    # try_new_model(engine)
-
-    # df = pd.read_sql_table("vmcache", get_db_connection(engine))
-    # print(df.execution_time_s)
-
-
-if __name__ == "__main__":
-    main()
+# def main():
+#     engine = get_db_engine(pathlib.Path("."))
+#     create_vmcache_tables(engine)
+#
+#     # add_some_entries(engine)
+#
+#     with Session(engine) as session:
+#         x = session.get(VMCached, "a313ecd")
+#         if x is not None:
+#             print(
+#                 f"Found entry with hash: {x.vmc_hash}",
+#                 "val: ",
+#                 decompress_vmr_string(x.vmr_b64_enc_zip),
+#             )
+#
+#     # try_new_model(engine)
+#
+#     # df = pd.read_sql_table("vmcache", get_db_connection(engine))
+#     # print(df.execution_time_s)

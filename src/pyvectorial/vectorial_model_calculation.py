@@ -37,8 +37,6 @@ from pyvectorial.encoding_and_hashing import (
 from pyvectorial.vectorial_model_config import VectorialModelConfig
 from pyvectorial.vectorial_model_result import VectorialModelResult
 
-# from pyvectorial.vectorial_model_runner import run_vectorial_model_timed
-
 EncodedVectorialModelResult: TypeAlias = str
 
 
@@ -94,31 +92,40 @@ def get_saved_model_from_cache(
                 vectorial_model_backend=res.vectorial_model_backend,
                 vectorial_model_version=res.vectorial_model_version,
             )
+            session.close()
             return evmc
         else:
             print("Not found in db.")
+            session.close()
     else:
-        print("No db session, skipping.")
+        print(
+            f"get_saved_model_from_cache: No db session, skipping. [hash {hashed_vmc}]"
+        )
         return None
 
 
 def save_model_to_cache(evmc: EncodedVMCalculation) -> None:
     hashed_vmc = vmc_to_sha256_digest(vmc=evmc.vmc)
     print(f"Saving model with hashed vmc {hashed_vmc} in db ...")
-    requested_session = get_vm_cache_db_session()
-    if requested_session is not None:
-        with requested_session as session:
-            to_db = VMCached(
-                vmc_hash=hashed_vmc,
-                vmr_b64_enc_zip=compress_vmr_string(evmc.evmr),
-                execution_time_s=evmc.execution_time_s,
-                vectorial_model_backend=evmc.vectorial_model_backend,
-                vectorial_model_version=evmc.vectorial_model_version,
+    session = get_vm_cache_db_session()
+    if session is not None:
+        with session.begin():
+            model_exists = (
+                session.query(VMCached).filter_by(vmc_hash=hashed_vmc).first()
             )
-            session.add(to_db)
-            session.commit()
+            if not model_exists:
+                to_db = VMCached(
+                    vmc_hash=hashed_vmc,
+                    vmr_b64_enc_zip=compress_vmr_string(evmc.evmr),
+                    execution_time_s=evmc.execution_time_s,
+                    vectorial_model_backend=evmc.vectorial_model_backend,
+                    vectorial_model_version=evmc.vectorial_model_version,
+                )
+                session.add(to_db)
+                session.commit()
+
     else:
-        print("No db session, skipping.")
+        print(f"save_model_to_cache: No db session, skipping. [hash {hashed_vmc}]")
 
 
 def rvm_single(
@@ -178,11 +185,27 @@ def rvm_parallel(
     parallelism: int = 1,
     vm_cache_dir: Optional[pathlib.Path] = None,
 ) -> List[VMCalculation]:
+    if vm_cache_dir is not None:
+        # if we are caching the models, run the unique model configs and cache them,
+        # then build the results list like normal
+        rvm_parallel_force_unique_models(
+            vmc_set=vmc_set,
+            extra_config=extra_config,
+            parallelism=parallelism,
+            vm_cache_dir=vm_cache_dir,
+        )
+
     # The fortran version uses fixed file names for input and output, so running multiple in parallel
     # would clobber each other's input and output files
     if isinstance(extra_config, FortranModelExtraConfig):
         print("Forcing no parallelism for fortran version!")
         parallelism = 1
+
+    vmc_hashes = [vmc_to_sha256_digest(x) for x in vmc_set]
+    unique_vmc_hashes = set(vmc_hashes)
+    reduced_vmc_set = [
+        vmc_set[vmc_hashes.index(unique_hash)] for unique_hash in unique_vmc_hashes
+    ]
 
     pool_start_time = time.time()
 
@@ -191,64 +214,99 @@ def rvm_parallel(
     )
 
     with Pool(parallelism) as vm_pool:
-        vmcalc_list = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)
+        # vmcalc_list = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)
+        vmcalc_list = vm_pool.map(run_vmodel_timed_mappable_func, reduced_vmc_set)
 
     pool_end_time = time.time()
-    print(f"Total run time: {pool_end_time - pool_start_time} seconds")
+    print(f"Total results assembly time: {pool_end_time - pool_start_time} seconds")
 
     return [VMCalculation.from_encoded(x) for x in vmcalc_list]
 
 
-# deprecate
-def run_vectorial_models_pooled(
+def rvm_parallel_force_unique_models(
     vmc_set: List[VectorialModelConfig],
+    vm_cache_dir: pathlib.Path,
     extra_config: Union[
         PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
     ] = PythonModelExtraConfig(print_progress=False),
     parallelism: int = 1,
-) -> List[VMCalculation]:
+) -> None:
     # The fortran version uses fixed file names for input and output, so running multiple in parallel
     # would clobber each other's input and output files
     if isinstance(extra_config, FortranModelExtraConfig):
         print("Forcing no parallelism for fortran version!")
         parallelism = 1
 
+    vmc_hashes = [vmc_to_sha256_digest(x) for x in vmc_set]
+    unique_vmc_hashes = set(vmc_hashes)
+    reduced_vmc_set = [
+        vmc_set[vmc_hashes.index(unique_hash)] for unique_hash in unique_vmc_hashes
+    ]
+
     pool_start_time = time.time()
 
     run_vmodel_timed_mappable_func = partial(
-        run_vectorial_model_timed, extra_config=extra_config
+        rvm_single, extra_config=extra_config, vm_cache_dir=vm_cache_dir
     )
+
     with Pool(parallelism) as vm_pool:
-        model_results = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)
+        # run the results and let them be saved in db
+        _ = vm_pool.map(run_vmodel_timed_mappable_func, reduced_vmc_set)
+
     pool_end_time = time.time()
-    print(f"Total run time: {pool_end_time - pool_start_time} seconds")
+    print(f"Total run time on unique models: {pool_end_time - pool_start_time} seconds")
 
-    vmrs = [x[0] for x in model_results]
-    execution_times = [x[1] for x in model_results]
 
-    # TODO: move this to the three backend files: get_python_vectorial_model_version() -> str   etc.
-    if isinstance(extra_config, PythonModelExtraConfig):
-        vectorial_model_backend = "python"
-        vectorial_model_version = impm.version("sbpy")
-    elif isinstance(extra_config, FortranModelExtraConfig):
-        vectorial_model_backend = "fortran"
-        vectorial_model_version = "1.0.0"
-    elif isinstance(extra_config, RustModelExtraConfig):
-        vectorial_model_backend = "rust"
-        vectorial_model_version = "0.1.0"
-
-    vm_calculation_list = [
-        VMCalculation(
-            vmc=vmc,
-            vmr=unpickle_from_base64(vmr),
-            execution_time_s=t.to_value(u.s),  # type: ignore
-            vectorial_model_backend=vectorial_model_backend,
-            vectorial_model_version=vectorial_model_version,
-        )
-        for (vmc, vmr, t) in zip(vmc_set, vmrs, execution_times)
-    ]
-
-    return vm_calculation_list
+# # deprecate
+# def run_vectorial_models_pooled(
+#     vmc_set: List[VectorialModelConfig],
+#     extra_config: Union[
+#         PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
+#     ] = PythonModelExtraConfig(print_progress=False),
+#     parallelism: int = 1,
+# ) -> List[VMCalculation]:
+#     # The fortran version uses fixed file names for input and output, so running multiple in parallel
+#     # would clobber each other's input and output files
+#     if isinstance(extra_config, FortranModelExtraConfig):
+#         print("Forcing no parallelism for fortran version!")
+#         parallelism = 1
+#
+#     pool_start_time = time.time()
+#
+#     run_vmodel_timed_mappable_func = partial(
+#         run_vectorial_model_timed, extra_config=extra_config
+#     )
+#     with Pool(parallelism) as vm_pool:
+#         model_results = vm_pool.map(run_vmodel_timed_mappable_func, vmc_set)
+#     pool_end_time = time.time()
+#     print(f"Total run time: {pool_end_time - pool_start_time} seconds")
+#
+#     vmrs = [x[0] for x in model_results]
+#     execution_times = [x[1] for x in model_results]
+#
+#     # TODO: move this to the three backend files: get_python_vectorial_model_version() -> str   etc.
+#     if isinstance(extra_config, PythonModelExtraConfig):
+#         vectorial_model_backend = "python"
+#         vectorial_model_version = impm.version("sbpy")
+#     elif isinstance(extra_config, FortranModelExtraConfig):
+#         vectorial_model_backend = "fortran"
+#         vectorial_model_version = "1.0.0"
+#     elif isinstance(extra_config, RustModelExtraConfig):
+#         vectorial_model_backend = "rust"
+#         vectorial_model_version = "0.1.0"
+#
+#     vm_calculation_list = [
+#         VMCalculation(
+#             vmc=vmc,
+#             vmr=unpickle_from_base64(vmr),
+#             execution_time_s=t.to_value(u.s),  # type: ignore
+#             vectorial_model_backend=vectorial_model_backend,
+#             vectorial_model_version=vectorial_model_version,
+#         )
+#         for (vmc, vmr, t) in zip(vmc_set, vmrs, execution_times)
+#     ]
+#
+#     return vm_calculation_list
 
 
 def store_vmcalculation_list(
