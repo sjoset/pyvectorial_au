@@ -4,8 +4,6 @@ from functools import partial
 
 import numpy as np
 import astropy.units as u
-
-# import scipy.interpolate
 from scipy import special, optimize
 
 from pyvectorial.haser.haser_params import HaserParams
@@ -36,9 +34,9 @@ def _make_haser_column_density_q(hps: HaserParams) -> Callable:
 
     Fitting function takes impact parameter in meters and returns column density in 1/m**2
     """
-    p_m = hps.gamma_p.to_value("m")
-    f_m = hps.gamma_d.to_value("m")
-    v_ms = hps.v_outflow.to_value("m/s")
+    p_m = hps.gamma_p.to_value("m")  # type: ignore
+    f_m = hps.gamma_d.to_value("m")  # type: ignore
+    v_ms = hps.v_outflow.to_value("m/s")  # type: ignore
 
     f = partial(_haser_column_density, v_ms=v_ms, p_m=p_m, f_m=f_m)
     return f

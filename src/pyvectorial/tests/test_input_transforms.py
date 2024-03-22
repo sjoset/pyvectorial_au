@@ -2,16 +2,15 @@ import pytest
 import astropy.units as u
 import numpy as np
 
-from pyvectorial.vectorial_model_config import (
+from pyvectorial.model_input.vectorial_model_config import (
     VectorialModelConfig,
     CometProduction,
     ParentMolecule,
     FragmentMolecule,
     VectorialModelGrid,
 )
-from pyvectorial.input_transforms import (
+from pyvectorial.pre_model_processing.input_transforms import (
     apply_input_transform,
-    # unapply_input_transform,
     VmcTransform,
 )
 
@@ -62,31 +61,7 @@ def test_fortran_festou_apply(testing_vmc):
         testing_vmc.fragment.tau_T.to_value(u.s) * rhsq,
     ]
 
-    assert np.allclose(transformed_input, expected_result)
-
-
-# def test_festou_fortran_unapply(testing_vmc):
-#     r_h = 2.0 * u.AU
-#     r_h_au = r_h.to_value(u.AU)
-#
-#     xfrmed_vmc = apply_input_transform(testing_vmc, r_h, VmcTransform.fortran_festou)
-#     assert xfrmed_vmc is not None
-#
-#     unxfrmed_vmc = unapply_input_transform(xfrmed_vmc, r_h, VmcTransform.fortran_festou)
-#     assert unxfrmed_vmc is not None
-#
-#     transformed_input = [
-#         unxfrmed_vmc.parent.tau_d.to(u.s).value,
-#         unxfrmed_vmc.parent.tau_T.to(u.s).value,
-#         unxfrmed_vmc.fragment.tau_T.to(u.s).value,
-#     ]
-#     expected_result = [
-#         testing_vmc.parent.tau_d.to(u.s).value,
-#         testing_vmc.parent.tau_T.to(u.s).value,
-#         testing_vmc.fragment.tau_T.to(u.s).value,
-#     ]
-#
-#     assert np.allclose(transformed_input, expected_result)
+    assert np.allclose(transformed_input, expected_result)  # type: ignore
 
 
 def test_cochran_schleicher_93_apply(testing_vmc):
@@ -113,33 +88,4 @@ def test_cochran_schleicher_93_apply(testing_vmc):
         0.85 / sqrh,
     ]
 
-    assert np.allclose(transformed_input, expected_result)
-
-
-# def test_cochran_schleicher_93_unapply(testing_vmc):
-#     r_h = 2.0 * u.AU
-#     sqrh = np.sqrt(r_h.to_value(u.AU))
-#
-#     xfrmed_vmc = apply_input_transform(
-#         testing_vmc, r_h, VmcTransform.cochran_schleicher_93
-#     )
-#     assert xfrmed_vmc is not None
-#     unxfrmed_vmc = unapply_input_transform(
-#         xfrmed_vmc, r_h, VmcTransform.cochran_schleicher_93
-#     )
-#     assert unxfrmed_vmc is not None
-#
-#     transformed_input = [
-#         unxfrmed_vmc.parent.tau_d.to(u.s).value,
-#         unxfrmed_vmc.parent.tau_T.to(u.s).value,
-#         unxfrmed_vmc.fragment.tau_T.to(u.s).value,
-#         unxfrmed_vmc.parent.v_outflow.to(u.km / u.s).value,
-#     ]
-#     expected_result = [
-#         testing_vmc.parent.tau_d.to(u.s).value,
-#         testing_vmc.parent.tau_T.to(u.s).value,
-#         testing_vmc.fragment.tau_T.to(u.s).value,
-#         (0.85 * u.km / u.s).value / sqrh,
-#     ]
-#
-#     assert np.allclose(transformed_input, expected_result)
+    assert np.allclose(transformed_input, expected_result)  # type: ignore

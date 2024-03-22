@@ -1,8 +1,10 @@
+# Pyvectorial
+This is a library for interfacing with vectorial models of cometary atmospheres, namely the model included in sbpy, but other versions written in fortran and rust are supported also.
+Features include standardized model input and output, database caching of completed models, and parallel running of models.
+
 # Dependencies
 ## `poetry install`
 ### For the package and dependencies
-## `pip install -e .`
-### In the sbpy repo of choice to round out the requirements
 
 # Testing
 `pytest`

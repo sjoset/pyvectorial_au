@@ -2,10 +2,12 @@ import os
 import pytest
 import numpy as np
 import astropy.units as u
-from pyvectorial.timedependentproduction import make_time_dependence_function
-from pyvectorial.vectorial_model_config_reader import vectorial_model_config_from_yaml
-
-# from pyvectorial.timedependentproduction import TimeDependentProduction
+from pyvectorial.pre_model_processing.timedependentproduction import (
+    make_time_dependence_function,
+)
+from pyvectorial.model_input.vectorial_model_config_reader import (
+    vectorial_model_config_from_yaml,
+)
 
 
 @pytest.fixture

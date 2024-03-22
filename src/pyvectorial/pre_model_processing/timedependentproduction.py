@@ -4,7 +4,7 @@ from typing import Callable, Optional
 import astropy.units as u
 import numpy as np
 
-from pyvectorial.vectorial_model_config import (
+from pyvectorial.model_input.vectorial_model_config import (
     GaussianProductionTimeVariation,
     SineWaveProductionTimeVariation,
     SquarePulseProductionTimeVariation,
@@ -40,7 +40,7 @@ def make_gaussian_q_t(vmc: VectorialModelConfig) -> Callable:
 
     def q_t(t):
         return amplitude_in_invsecs * np.e ** -(
-            ((t - t_max_in_secs) ** 2) / (2 * std_dev_in_secs**2)
+            ((t - t_max_in_secs) ** 2) / (2 * std_dev_in_secs**2)  # type: ignore
         )
 
     return q_t
@@ -53,7 +53,7 @@ def make_sine_q_t(vmc: VectorialModelConfig) -> Callable:
     amplitude_in_invsecs = vmc.production.time_variation.amplitude.to_value(1 / u.s)  # type: ignore
     period_in_secs = vmc.production.time_variation.period.to_value(u.s)  # type: ignore
     delta_in_secs = vmc.production.time_variation.delta.to_value(u.s)  # type: ignore
-    const_B = (2.0 * np.pi) / period_in_secs
+    const_B = (2.0 * np.pi) / period_in_secs  # type: ignore
 
     log.debug(
         "Building sinusoidal q_t:\tAmplitude: %s, period: %s, delta: %s",
@@ -75,7 +75,9 @@ def make_square_pulse_q_t(vmc: VectorialModelConfig) -> Callable:
     t_start_in_secs = vmc.production.time_variation.t_start.to_value(u.s)  # type: ignore
     tend_in_secs = (  # type: ignore
         vmc.production.time_variation.t_start - vmc.production.time_variation.duration
-    ).to_value(u.s)
+    ).to_value(  # type: ignore
+        u.s
+    )
     amplitude_in_invsecs = vmc.production.time_variation.amplitude.to_value(1 / u.s)  # type: ignore
 
     log.debug(

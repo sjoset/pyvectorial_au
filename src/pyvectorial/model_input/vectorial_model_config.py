@@ -184,9 +184,13 @@ class CometProduction(BaseModel):
     )
 
     base_q_per_s: PositiveFloat
-    time_variation: GaussianProductionTimeVariation | SineWaveProductionTimeVariation | SquarePulseProductionTimeVariation | BinnedProductionTimeVariation | None = (
-        None
-    )
+    time_variation: (
+        GaussianProductionTimeVariation
+        | SineWaveProductionTimeVariation
+        | SquarePulseProductionTimeVariation
+        | BinnedProductionTimeVariation
+        | None
+    ) = None
 
     @property
     def base_q(self) -> RateQuantity:
@@ -252,14 +256,3 @@ class VectorialModelConfig(BaseModel):
     parent: ParentMolecule
     fragment: FragmentMolecule
     grid: VectorialModelGrid
-
-
-# # Our function for generating a deterministic hash based on the vmc
-# def hash_vmc(vmc: VectorialModelConfig):
-#     """
-#     If we have a large number of models stored, we may want to quickly search whether or not a given
-#     VectorialModelConfig has been run already.  If we generate a unique hash based on the
-#     VectorialModelConfig and save that along with the model results, we can compare hashes to see if
-#     this particular VectorialModelConfig has been run already.
-#     """
-#     return hashlib.sha256(pprint.pformat(vmc).encode("utf-8")).hexdigest()

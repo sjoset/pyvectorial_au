@@ -1,12 +1,11 @@
 import time
-import pathlib
-from typing import Tuple, Union, TypeAlias, Optional
+from typing import Tuple, Union, TypeAlias
 
 import astropy.units as u
 from astropy.units.quantity import Quantity
 
-from pyvectorial.vectorial_model_config import VectorialModelConfig
-from pyvectorial.vectorial_model_result import VectorialModelResult
+from pyvectorial.model_input.vectorial_model_config import VectorialModelConfig
+from pyvectorial.model_output.vectorial_model_result import VectorialModelResult
 from pyvectorial.backends.python_version import (
     PythonModelExtraConfig,
     run_python_vectorial_model,
@@ -19,7 +18,7 @@ from pyvectorial.backends.rust_version import (
     RustModelExtraConfig,
     run_rust_vectorial_model,
 )
-from pyvectorial.encoding_and_hashing import pickle_to_base64
+from pyvectorial.encoding.encoding_and_hashing import pickle_to_base64
 
 EncodedVectorialModelResult: TypeAlias = str
 

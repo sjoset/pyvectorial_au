@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cmx
 from matplotlib.colors import Normalize
 
-from pyvectorial.vectorial_model_result import (
+from pyvectorial.model_output.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterPolar,
     FragmentSputterSpherical,
@@ -81,54 +81,57 @@ def mpl_mark_collision_sphere(vmr: VectorialModelResult, ax, **kwargs) -> None:
 
 # ax is an axis from a matplotlib figure
 def mpl_volume_density_plot(
-    vmr: VectorialModelResult, ax, dist_units=u.m, vdens_units=1 / u.m**3, **kwargs
+    vmr: VectorialModelResult, ax, dist_units=u.m, vdens_units=1 / u.m**3, **kwargs  # type: ignore
 ) -> None:
-    xs = vmr.volume_density_grid.to(dist_units)
-    ys = vmr.volume_density.to(vdens_units)
+    xs = vmr.volume_density_grid.to(dist_units)  # type: ignore
+    ys = vmr.volume_density.to(vdens_units)  # type: ignore
 
     ax.scatter(xs, ys, **kwargs)
 
 
 def mpl_volume_density_interpolation_plot(
-    vmr: VectorialModelResult, ax, dist_units=u.m, vdens_units=1 / u.m**3, **kwargs
+    vmr: VectorialModelResult, ax, dist_units=u.m, vdens_units=1 / u.m**3, **kwargs  # type: ignore
 ) -> None:
+    if vmr.volume_density_interpolation is None:
+        return
+
     # model's interpolation function needs meters in, gives output in 1/m**3
     ys = (
-        vmr.volume_density_interpolation(vmr.volume_density_grid.to_value(u.m))
-        / u.m**3
+        vmr.volume_density_interpolation(vmr.volume_density_grid.to_value(u.m)) / u.m**3  # type: ignore
     )
-    ax.plot(vmr.volume_density_grid.to(dist_units), ys.to(vdens_units), **kwargs)
+    ax.plot(vmr.volume_density_grid.to(dist_units), ys.to(vdens_units), **kwargs)  # type: ignore
 
 
 def mpl_column_density_plot(
-    vmr: VectorialModelResult, ax, dist_units=u.m, cdens_units=1 / u.m**2, **kwargs
+    vmr: VectorialModelResult, ax, dist_units=u.m, cdens_units=1 / u.m**2, **kwargs  # type: ignore
 ) -> None:
-    xs = vmr.column_density_grid.to(dist_units)
-    ys = vmr.column_density.to(cdens_units)
+    xs = vmr.column_density_grid.to(dist_units)  # type: ignore
+    ys = vmr.column_density.to(cdens_units)  # type: ignore
 
     ax.scatter(xs, ys, **kwargs)
 
 
 def mpl_column_density_interpolation_plot(
-    vmr: VectorialModelResult, ax, dist_units=u.m, cdens_units=1 / u.m**2, **kwargs
+    vmr: VectorialModelResult, ax, dist_units=u.m, cdens_units=1 / u.m**2, **kwargs  # type: ignore
 ) -> None:
+    if vmr.column_density_interpolation is None:
+        return
     # model's interpolation function needs meters in, gives output in 1/m**2
     ys = (
-        vmr.column_density_interpolation(vmr.column_density_grid.to_value(u.m))
-        / u.m**2
+        vmr.column_density_interpolation(vmr.column_density_grid.to_value(u.m)) / u.m**2  # type: ignore
     )
-    ax.plot(vmr.column_density_grid.to(dist_units), ys.to(cdens_units), **kwargs)
+    ax.plot(vmr.column_density_grid.to(dist_units), ys.to(cdens_units), **kwargs)  # type: ignore
 
 
 def mpl_column_density_plot_3d(
     vmr: VectorialModelResult,
     ax,
-    center=(0, 0) * u.m,
-    width=200000 * u.km,
-    height=200000 * u.km,
+    center=(0, 0) * u.m,  # type: ignore
+    width=200000 * u.km,  # type: ignore
+    height=200000 * u.km,  # type: ignore
     divisions=100,
     dist_units=u.m,
-    cdens_units=1 / u.m**2,
+    cdens_units=1 / u.m**2,  # type: ignore
     **kwargs
 ) -> None:
     xmin_m, ymin_m = np.subtract(
@@ -141,10 +144,7 @@ def mpl_column_density_plot_3d(
     ys_m = np.linspace(ymin_m, ymax_m, num=divisions)
 
     xmesh_m, ymesh_m = np.meshgrid(xs_m, ys_m)
-    zmesh = (
-        vmr.column_density_interpolation(np.sqrt(xmesh_m**2 + ymesh_m**2))
-        / u.m**2
-    )
+    zmesh = vmr.column_density_interpolation(np.sqrt(xmesh_m**2 + ymesh_m**2)) / u.m**2  # type: ignore
     xmesh = xmesh_m * u.m
     ymesh = ymesh_m * u.m
 
@@ -169,8 +169,8 @@ def mpl_fragment_sputter_contour_plot(
     ax,
     dist_units=u.km,
     sputter_units=1 / u.cm**3,
-    within_r=1000 * u.km,
-    min_r=0 * u.km,
+    within_r=1000 * u.km,  # type: ignore
+    min_r=0 * u.km,  # type: ignore
     max_angle=np.pi,
     mirrored=False,
     show_outflow_axis=True,
@@ -193,9 +193,9 @@ def mpl_fragment_sputter_contour_plot(
     ):
         fragment_sputter = fragment_sputter_to_cartesian(fragment_sputter)
 
-    xs = fragment_sputter.xs.to(dist_units)
-    ys = fragment_sputter.ys.to(dist_units)
-    zs = fragment_sputter.fragment_density.to(sputter_units)
+    xs = fragment_sputter.xs.to(dist_units)  # type: ignore
+    ys = fragment_sputter.ys.to(dist_units)  # type: ignore
+    zs = fragment_sputter.fragment_density.to(sputter_units)  # type: ignore
 
     # within_limit = np.sqrt(xs**2 + ys**2) < within_r
     within_limit = np.logical_and(
@@ -207,8 +207,8 @@ def mpl_fragment_sputter_contour_plot(
 
     if show_outflow_axis:
         # highlight the outflow axis, along positive y
-        origin = [0, 0, 0] * dist_units
-        outflow_max = [0, np.max(ys.to_value(dist_units)), 0] * dist_units
+        origin = [0, 0, 0] * dist_units  # type: ignore
+        outflow_max = [0, np.max(ys.to_value(dist_units)), 0] * dist_units  # type: ignore
         ax.plot(origin, outflow_max, color=myblue, lw=2, label="outflow axis")
 
     x_mesh, y_mesh = np.meshgrid(np.unique(xs), np.unique(ys))
@@ -243,8 +243,8 @@ def mpl_fragment_sputter_plot(
     vmr: VectorialModelResult,
     ax,
     dist_units=u.m,
-    sputter_units=1 / u.m**3,
-    within_r=1000 * u.km,
+    sputter_units=1 / u.m**3,  # type: ignore
+    within_r=1000 * u.km,  # type: ignore
     mirrored: bool = False,
     show_outflow_axis: bool = True,
     **kwargs

@@ -25,11 +25,11 @@ def test_fortran_collision_sphere(vmc_from_fortran):
 
 
 def test_fortran_max_grid_radius(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.max_grid_radius, 1.061e6 * u.km)
+    assert np.isclose(vmc_from_fortran.max_grid_radius, 1.061e6 * u.km)  # type: ignore
 
 
 def test_fortran_coma_radius(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.coma_radius, 7.259e5 * u.km)
+    assert np.isclose(vmc_from_fortran.coma_radius, 7.259e5 * u.km)  # type: ignore
 
 
 # def test_num_fragments_theory(vmc_from_fortran):
@@ -41,11 +41,11 @@ def test_fortran_coma_radius(vmc_from_fortran):
 
 
 def test_volume_density_grid_first(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.volume_density_grid[0], 0.2e3 * u.km)
+    assert np.isclose(vmc_from_fortran.volume_density_grid[0], 0.2e3 * u.km)  # type: ignore
 
 
 def test_volume_density_grid_last(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.volume_density_grid[-1], 0.10e7 * u.km)
+    assert np.isclose(vmc_from_fortran.volume_density_grid[-1], 0.10e7 * u.km)  # type: ignore
 
 
 def test_volume_density_first(vmc_from_fortran):
@@ -57,11 +57,11 @@ def test_volume_density_last(vmc_from_fortran):
 
 
 def test_column_density_grid_first(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.column_density_grid[0], 0.20322e3 * u.km)
+    assert np.isclose(vmc_from_fortran.column_density_grid[0], 0.20322e3 * u.km)  # type: ignore
 
 
 def test_column_density_grid_last(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.column_density_grid[-1], 7.21038e5 * u.km)
+    assert np.isclose(vmc_from_fortran.column_density_grid[-1], 7.21038e5 * u.km)  # type: ignore
 
 
 def test_column_density_first(vmc_from_fortran):
@@ -73,11 +73,11 @@ def test_column_density_last(vmc_from_fortran):
 
 
 def test_fragment_sputter_r_first(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.fragment_sputter.rs[0], 1048352.88 * u.km)
+    assert np.isclose(vmc_from_fortran.fragment_sputter.rs[0], 1048352.88 * u.km)  # type: ignore
 
 
 def test_fragment_sputter_r_last(vmc_from_fortran):
-    assert np.isclose(vmc_from_fortran.fragment_sputter.rs[-1], 203.169159 * u.km)
+    assert np.isclose(vmc_from_fortran.fragment_sputter.rs[-1], 203.169159 * u.km)  # type: ignore
 
 
 def test_fragment_sputter_theta_first(vmc_from_fortran):

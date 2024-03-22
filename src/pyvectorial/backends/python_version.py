@@ -3,14 +3,15 @@ import logging as log
 import sbpy.activity as sba
 from sbpy.data import Phys
 from dataclasses import dataclass
-from pyvectorial.timedependentproduction import make_time_dependence_function
+from pyvectorial.pre_model_processing.timedependentproduction import (
+    make_time_dependence_function,
+)
 
-# from pyvectorial.timedependentproduction import TimeDependentProduction
-from pyvectorial.vectorial_model_config import (
+from pyvectorial.model_input.vectorial_model_config import (
     BinnedProductionTimeVariation,
     VectorialModelConfig,
 )
-from pyvectorial.vectorial_model_result import (
+from pyvectorial.model_output.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterSpherical,
 )

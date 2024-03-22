@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from typing import Tuple
 from typing import Optional
 
-from pyvectorial.vectorial_model_result import (
+from pyvectorial.model_output.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterPolar,
     FragmentSputterSpherical,
@@ -63,12 +63,11 @@ def plotly_volume_density_interpolation_plot(
 ) -> go.Scatter:
     # model's interpolation function needs meters in, gives output in 1/m**3
     ys = (
-        vmr.volume_density_interpolation(vmr.volume_density_grid.to_value(u.m))
-        / u.m**3
+        vmr.volume_density_interpolation(vmr.volume_density_grid.to_value(u.m)) / u.m**3  # type: ignore
     )
 
     vdens_interp_plot = go.Scatter(
-        x=vmr.volume_density_grid.to_value(dist_units),
+        x=vmr.volume_density_grid.to_value(dist_units),  # type: ignore
         y=ys.to_value(vdens_units),
         **kwargs
     )
@@ -76,26 +75,25 @@ def plotly_volume_density_interpolation_plot(
 
 
 def plotly_column_density_plot(
-    vmr: VectorialModelResult, dist_units=u.m, cdens_units=1 / u.m**2, **kwargs
+    vmr: VectorialModelResult, dist_units=u.m, cdens_units=1 / u.m**2, **kwargs  # type: ignore
 ) -> go.Scatter:
-    xs = vmr.column_density_grid.to(dist_units)
-    ys = vmr.column_density.to(cdens_units)
+    xs = vmr.column_density_grid.to(dist_units)  # type: ignore
+    ys = vmr.column_density.to(cdens_units)  # type: ignore
 
     cdens_plot = go.Scatter(x=xs, y=ys, **kwargs)
     return cdens_plot
 
 
 def plotly_column_density_interpolation_plot(
-    vmr: VectorialModelResult, dist_units=u.m, cdens_units=1 / u.m**2, **kwargs
+    vmr: VectorialModelResult, dist_units=u.m, cdens_units=1 / u.m**2, **kwargs  # type: ignore
 ) -> go.Scatter:
     # model's interpolation function needs meters in, gives output in 1/m**2
     ys = (
-        vmr.column_density_interpolation(vmr.column_density_grid.to_value(u.m))
-        / u.m**2
+        vmr.column_density_interpolation(vmr.column_density_grid.to_value(u.m)) / u.m**2  # type: ignore
     )
 
     cdens_interp_plot = go.Scatter(
-        x=vmr.column_density_grid.to_value(dist_units),
+        x=vmr.column_density_grid.to_value(dist_units),  # type: ignore
         y=ys.to_value(cdens_units),
         **kwargs
     )
@@ -104,12 +102,12 @@ def plotly_column_density_interpolation_plot(
 
 def plotly_column_density_plot_3d(
     vmr: VectorialModelResult,
-    center=(0, 0) * u.km,
-    width=200000 * u.km,
-    height=200000 * u.km,
+    center=(0, 0) * u.km,  # type: ignore
+    width=200000 * u.km,  # type: ignore
+    height=200000 * u.km,  # type: ignore
     divisions=100,
     dist_units=u.m,
-    cdens_units=1 / u.m**2,
+    cdens_units=1 / u.m**2,  # type: ignore
     **kwargs
 ) -> go.Surface:
     xmin_m, ymin_m = np.subtract(
@@ -123,8 +121,7 @@ def plotly_column_density_plot_3d(
 
     x_mesh_m, y_mesh_m = np.meshgrid(xs_m, ys_m)
     z_mesh = (
-        vmr.column_density_interpolation(np.sqrt(x_mesh_m**2 + y_mesh_m**2))
-        / u.m**2
+        vmr.column_density_interpolation(np.sqrt(x_mesh_m**2 + y_mesh_m**2)) / u.m**2  # type: ignore
     )
     x_mesh = x_mesh_m * u.m
     y_mesh = y_mesh_m * u.m
@@ -142,8 +139,8 @@ def plotly_fragment_sputter_contour_plot(
     vmr,
     dist_units=u.km,
     sputter_units=1 / u.cm**3,
-    within_r=2000 * u.km,
-    min_r=0 * u.km,
+    within_r=2000 * u.km,  # type: ignore
+    min_r=0 * u.km,  # type: ignore
     max_angle=np.pi,
     mirrored=False,
     show_outflow_axis=True,
@@ -154,9 +151,9 @@ def plotly_fragment_sputter_contour_plot(
     if mirrored:
         fragment_sputter = mirror_fragment_sputter(fragment_sputter)
 
-    within_max_angle = fragment_sputter.thetas < max_angle
-    fragment_sputter.rs = fragment_sputter.rs[within_max_angle]
-    fragment_sputter.thetas = fragment_sputter.thetas[within_max_angle]
+    within_max_angle = fragment_sputter.thetas < max_angle  # type: ignore
+    fragment_sputter.rs = fragment_sputter.rs[within_max_angle]  # type: ignore
+    fragment_sputter.thetas = fragment_sputter.thetas[within_max_angle]  # type: ignore
     fragment_sputter.fragment_density = fragment_sputter.fragment_density[
         within_max_angle
     ]
@@ -166,9 +163,6 @@ def plotly_fragment_sputter_contour_plot(
     ):
         fragment_sputter = fragment_sputter_to_cartesian(fragment_sputter)
 
-    # if mirrored:
-    #     fragment_sputter = mirror_fragment_sputter(fragment_sputter)
-
     xs = fragment_sputter.xs
     ys = fragment_sputter.ys
     zs = fragment_sputter.fragment_density
@@ -176,9 +170,9 @@ def plotly_fragment_sputter_contour_plot(
     within_limit = np.logical_and(
         np.sqrt(xs**2 + ys**2) < within_r, np.sqrt(xs**2 + ys**2) > min_r
     )
-    xs = xs[within_limit].to_value(dist_units)
-    ys = ys[within_limit].to_value(dist_units)
-    zs = zs[within_limit].to_value(sputter_units)
+    xs = xs[within_limit].to_value(dist_units)  # type: ignore
+    ys = ys[within_limit].to_value(dist_units)  # type: ignore
+    zs = zs[within_limit].to_value(sputter_units)  # type: ignore
 
     x_mesh, y_mesh = np.meshgrid(np.unique(xs), np.unique(ys))
     fs_rbf = scipy.interpolate.Rbf(xs, ys, zs, function="cubic")
@@ -202,9 +196,9 @@ def plotly_fragment_sputter_contour_plot(
 def plotly_fragment_sputter_plot(
     vmr,
     dist_units=u.m,
-    sputter_units=1 / u.m**3,
-    within_r=5000 * u.km,
-    min_r=0 * u.km,
+    sputter_units=1 / u.m**3,  # type: ignore
+    within_r=5000 * u.km,  # type: ignore
+    min_r=0 * u.km,  # type: ignore
     mirrored=False,
     show_outflow_axis=True,
     **kwargs
@@ -241,9 +235,9 @@ def plotly_fragment_sputter_plot(
         print("Radial cutoff for fragment sputter too small!  Nothing to plot.")
         return (None, None, None)
 
-    xs = xs[within_limit].to_value(dist_units)
-    ys = ys[within_limit].to_value(dist_units)
-    zs = zs[within_limit].to_value(sputter_units)
+    xs = xs[within_limit].to_value(dist_units)  # type: ignore
+    ys = ys[within_limit].to_value(dist_units)  # type: ignore
+    zs = zs[within_limit].to_value(sputter_units)  # type: ignore
 
     sputter_plot = go.Scatter3d(
         x=xs, y=ys, z=zs, mode="markers", marker_color=zs, **kwargs
@@ -267,7 +261,7 @@ def plotly_q_t_plot(
         return None
 
     # coma q_t function takes seconds, no astropy units attached
-    ts_s = (np.linspace(-40, 40, num=1000) * u.hour).to_value(u.s)
+    ts_s = (np.linspace(-40, 40, num=1000) * u.hour).to_value(u.s)  # type: ignore
     f_q = np.vectorize(vmr.coma.q_t)
     qs = f_q(ts_s)
     t_h = (ts_s * u.s).to_value(time_units)

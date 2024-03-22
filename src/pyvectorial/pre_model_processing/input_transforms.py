@@ -5,7 +5,7 @@ import numpy as np
 import astropy.units as u
 from astropy.units.quantity import Quantity
 
-from pyvectorial.vectorial_model_config import (
+from pyvectorial.model_input.vectorial_model_config import (
     FragmentMolecule,
     ParentMolecule,
     VectorialModelConfig,

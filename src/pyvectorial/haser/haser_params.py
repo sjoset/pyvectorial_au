@@ -3,7 +3,7 @@ import astropy.units as u
 
 from dataclasses import dataclass
 from typing import Optional
-from pyvectorial.vectorial_model_config import VectorialModelConfig
+from pyvectorial.model_input.vectorial_model_config import VectorialModelConfig
 
 
 """
@@ -23,7 +23,6 @@ class HaserParams:
     gamma_d: Optional[u.Quantity]
 
 
-# TODO: move this somewhere else
 def haser_from_vectorial_cd1980(vmc: VectorialModelConfig) -> HaserParams:
     # use relations in Combi & Delsemme 1980 to translate vectorial parameters
     # into roughly equivalent haser parameters

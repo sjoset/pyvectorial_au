@@ -12,21 +12,22 @@ from typing import List, Optional
 
 import numpy as np
 import astropy.units as u
-from pyvectorial.column_density_abel import column_density_from_abel
-from pyvectorial.encoding_and_hashing import vmc_to_sha256_digest
-from pyvectorial.interpolation import (
+from pyvectorial.post_model_processing.column_density_abel import (
+    column_density_from_abel,
+)
+from pyvectorial.post_model_processing.interpolation import (
     interpolate_column_density,
     interpolate_volume_density,
 )
 
-from pyvectorial.vectorial_model_config import (
+from pyvectorial.model_input.vectorial_model_config import (
     VectorialModelConfig,
     CometProduction,
     ParentMolecule,
     FragmentMolecule,
     VectorialModelGrid,
 )
-from pyvectorial.vectorial_model_result import (
+from pyvectorial.model_output.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterSpherical,
 )

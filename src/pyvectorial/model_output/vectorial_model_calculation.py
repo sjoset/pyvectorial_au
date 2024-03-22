@@ -27,15 +27,15 @@ from pyvectorial.db.vectorial_model_cache import (
     get_vm_cache_db_session,
     initialize_vectorial_model_cache,
 )
-from pyvectorial.encoding_and_hashing import (
+from pyvectorial.encoding.encoding_and_hashing import (
     compress_vmr_string,
     decompress_vmr_string,
     pickle_to_base64,
     unpickle_from_base64,
     vmc_to_sha256_digest,
 )
-from pyvectorial.vectorial_model_config import VectorialModelConfig
-from pyvectorial.vectorial_model_result import VectorialModelResult
+from pyvectorial.model_input.vectorial_model_config import VectorialModelConfig
+from pyvectorial.model_output.vectorial_model_result import VectorialModelResult
 
 EncodedVectorialModelResult: TypeAlias = str
 
