@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "pyvectorial"
+name = "pyvectorial_au"
 version = "1.0.0"
-description = "Utilities for running and saving vectorial models, like the one included in sbpy"
+description = "Utilities for running, saving, and interfacing with cometary vectorial models, like the one included in sbpy"
 authors = ["Shawn Oset <szo0032@auburn.edu>"]
 license = "MIT"
 readme = "README.md"
@@ -22,8 +22,6 @@ rich = "^13.7.0"
 sqlalchemy = "^2.0.24"
 
 [tool.poetry.scripts]
-pyv_oneshot = 'pyvectorial.scripts.oneshot:main'
-model_compare = 'pyvectorial.scripts.model_compare:main'
 
 [tool.poetry.dev-dependencies]
 pytest = ">=7.4.3"
