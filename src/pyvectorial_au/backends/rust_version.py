@@ -42,7 +42,7 @@ from pyvectorial_au.model_output.vectorial_model_result import (
 class RustModelExtraConfig:
     bin_path: pathlib.Path = importlib.resources.files(  # type: ignore
         package="pyvectorial_au"
-    ) / pathlib.Path("bin/rust_vect")
+    ) / pathlib.Path("bin/rust_vect_m1")
 
 
 def run_rust_vectorial_model(

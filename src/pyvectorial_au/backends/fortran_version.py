@@ -40,7 +40,7 @@ class FortranModelExtraConfig:
     read_sputter: bool = True
     bin_path: pathlib.Path = importlib.resources.files(  # type: ignore
         package="pyvectorial_au"
-    ) / pathlib.Path("bin/fvm")
+    ) / pathlib.Path("bin/fvm_m1")
 
 
 def run_fortran_vectorial_model(
