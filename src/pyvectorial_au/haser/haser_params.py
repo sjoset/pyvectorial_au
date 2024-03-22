@@ -3,7 +3,7 @@ import astropy.units as u
 
 from dataclasses import dataclass
 from typing import Optional
-from pyvectorial.model_input.vectorial_model_config import VectorialModelConfig
+from pyvectorial_au.model_input.vectorial_model_config import VectorialModelConfig
 
 
 """

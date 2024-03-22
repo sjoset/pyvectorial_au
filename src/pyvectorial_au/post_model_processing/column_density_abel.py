@@ -3,7 +3,7 @@ import numpy as np
 import astropy.units as u
 
 from abel.hansenlaw import hansenlaw_transform
-from pyvectorial.model_output.vectorial_model_result import VectorialModelResult
+from pyvectorial_au.model_output.vectorial_model_result import VectorialModelResult
 
 
 def column_density_from_abel(vmr: VectorialModelResult, num_samples=10000) -> None:

@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from typing import Tuple
 from typing import Optional
 
-from pyvectorial.model_output.vectorial_model_result import (
+from pyvectorial_au.model_output.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterPolar,
     FragmentSputterSpherical,

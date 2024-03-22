@@ -11,16 +11,16 @@ from astropy.units.quantity import Quantity
 from itertools import islice
 from contextlib import redirect_stdout
 from dataclasses import dataclass
-from pyvectorial.post_model_processing.column_density_abel import (
+from pyvectorial_au.post_model_processing.column_density_abel import (
     column_density_from_abel,
 )
-from pyvectorial.post_model_processing.interpolation import (
+from pyvectorial_au.post_model_processing.interpolation import (
     interpolate_column_density,
     interpolate_volume_density,
 )
 
-from pyvectorial.model_input.vectorial_model_config import VectorialModelConfig
-from pyvectorial.model_output.vectorial_model_result import (
+from pyvectorial_au.model_input.vectorial_model_config import VectorialModelConfig
+from pyvectorial_au.model_output.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterSpherical,
 )
@@ -39,7 +39,7 @@ class FortranModelExtraConfig:
     r_h: Quantity
     read_sputter: bool = True
     bin_path: pathlib.Path = importlib.resources.files(  # type: ignore
-        package="pyvectorial"
+        package="pyvectorial_au"
     ) / pathlib.Path("bin/fvm")
 
 

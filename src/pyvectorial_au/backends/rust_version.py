@@ -12,22 +12,22 @@ from typing import List, Optional
 
 import numpy as np
 import astropy.units as u
-from pyvectorial.post_model_processing.column_density_abel import (
+from pyvectorial_au.post_model_processing.column_density_abel import (
     column_density_from_abel,
 )
-from pyvectorial.post_model_processing.interpolation import (
+from pyvectorial_au.post_model_processing.interpolation import (
     interpolate_column_density,
     interpolate_volume_density,
 )
 
-from pyvectorial.model_input.vectorial_model_config import (
+from pyvectorial_au.model_input.vectorial_model_config import (
     VectorialModelConfig,
     CometProduction,
     ParentMolecule,
     FragmentMolecule,
     VectorialModelGrid,
 )
-from pyvectorial.model_output.vectorial_model_result import (
+from pyvectorial_au.model_output.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterSpherical,
 )
@@ -41,7 +41,7 @@ from pyvectorial.model_output.vectorial_model_result import (
 @dataclass
 class RustModelExtraConfig:
     bin_path: pathlib.Path = importlib.resources.files(  # type: ignore
-        package="pyvectorial"
+        package="pyvectorial_au"
     ) / pathlib.Path("bin/rust_vect")
 
 

@@ -4,7 +4,7 @@ import pathlib
 import logging as log
 from typing import Optional
 
-from pyvectorial.model_input.vectorial_model_config import VectorialModelConfig
+from pyvectorial_au.model_input.vectorial_model_config import VectorialModelConfig
 
 
 def vectorial_model_config_from_yaml(

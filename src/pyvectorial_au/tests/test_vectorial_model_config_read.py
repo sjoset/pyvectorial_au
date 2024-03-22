@@ -1,7 +1,7 @@
 import os
 import pytest
 import astropy.units as u
-from pyvectorial.model_input.vectorial_model_config_reader import (
+from pyvectorial_au.model_input.vectorial_model_config_reader import (
     vectorial_model_config_from_yaml,
 )
 

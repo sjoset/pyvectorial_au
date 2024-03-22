@@ -6,7 +6,7 @@ import scipy.integrate
 import astropy.units as u
 import sbpy.activity as sba
 
-from pyvectorial.model_output.vectorial_model_result import VectorialModelResult
+from pyvectorial_au.model_output.vectorial_model_result import VectorialModelResult
 
 
 class UncenteredRectangularAperture(sba.Aperture):

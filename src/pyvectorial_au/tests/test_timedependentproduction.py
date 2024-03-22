@@ -2,10 +2,10 @@ import os
 import pytest
 import numpy as np
 import astropy.units as u
-from pyvectorial.pre_model_processing.timedependentproduction import (
+from pyvectorial_au.pre_model_processing.timedependentproduction import (
     make_time_dependence_function,
 )
-from pyvectorial.model_input.vectorial_model_config_reader import (
+from pyvectorial_au.model_input.vectorial_model_config_reader import (
     vectorial_model_config_from_yaml,
 )
 

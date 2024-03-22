@@ -6,7 +6,7 @@ import numpy as np
 import astropy.units as u
 from scipy import special, optimize
 
-from pyvectorial.haser.haser_params import HaserParams
+from pyvectorial_au.haser.haser_params import HaserParams
 
 
 """

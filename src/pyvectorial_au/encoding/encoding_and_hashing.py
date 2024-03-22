@@ -4,7 +4,7 @@ import dill as pickle
 import codecs
 from typing import Any, TypeAlias
 
-from pyvectorial.model_input.vectorial_model_config import VectorialModelConfig
+from pyvectorial_au.model_input.vectorial_model_config import VectorialModelConfig
 
 VectorialModelConfigHash: TypeAlias = str
 

@@ -4,7 +4,7 @@ from typing import Callable, Optional
 import astropy.units as u
 import numpy as np
 
-from pyvectorial.model_input.vectorial_model_config import (
+from pyvectorial_au.model_input.vectorial_model_config import (
     GaussianProductionTimeVariation,
     SineWaveProductionTimeVariation,
     SquarePulseProductionTimeVariation,

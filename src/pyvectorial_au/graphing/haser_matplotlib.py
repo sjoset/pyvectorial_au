@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sbpy.activity as sba
 
-from pyvectorial.haser.haser_params import HaserParams
+from pyvectorial_au.haser.haser_params import HaserParams
 
 """
     Utility functions for Haser-related plotting

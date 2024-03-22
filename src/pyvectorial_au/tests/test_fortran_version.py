@@ -2,7 +2,7 @@ import os
 import pytest
 import astropy.units as u
 import numpy as np
-from pyvectorial.backends.fortran_version import vmr_from_fortran_output
+from pyvectorial_au.backends.fortran_version import vmr_from_fortran_output
 
 
 @pytest.fixture

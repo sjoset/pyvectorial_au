@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cmx
 from matplotlib.colors import Normalize
 
-from pyvectorial.model_output.vectorial_model_result import (
+from pyvectorial_au.model_output.vectorial_model_result import (
     VectorialModelResult,
     FragmentSputterPolar,
     FragmentSputterSpherical,
