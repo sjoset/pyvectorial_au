@@ -6,12 +6,14 @@ import plotly.graph_objects as go
 from typing import Tuple
 from typing import Optional
 
-from pyvectorial_au.model_output.vectorial_model_result import (
-    VectorialModelResult,
-    FragmentSputterPolar,
+from pyvectorial_au.model_output.vectorial_model_result import VectorialModelResult
+from pyvectorial_au.model_output.fragment_sputter import (
     FragmentSputterSpherical,
-    fragment_sputter_to_cartesian,
+    FragmentSputterPolar,
+)
+from pyvectorial_au.post_model_processing.fragment_sputter_transform import (
     mirror_fragment_sputter,
+    fragment_sputter_to_cartesian,
 )
 
 

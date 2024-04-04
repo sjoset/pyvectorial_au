@@ -8,12 +8,14 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cmx
 from matplotlib.colors import Normalize
 
-from pyvectorial_au.model_output.vectorial_model_result import (
-    VectorialModelResult,
-    FragmentSputterPolar,
+from pyvectorial_au.model_output.vectorial_model_result import VectorialModelResult
+from pyvectorial_au.model_output.fragment_sputter import (
     FragmentSputterSpherical,
-    fragment_sputter_to_cartesian,
+    FragmentSputterPolar,
+)
+from pyvectorial_au.post_model_processing.fragment_sputter_transform import (
     mirror_fragment_sputter,
+    fragment_sputter_to_cartesian,
 )
 
 
@@ -251,17 +253,17 @@ def mpl_fragment_sputter_plot(
 ) -> None:
     fragment_sputter = vmr.fragment_sputter
 
-    if mirrored:
-        fragment_sputter = mirror_fragment_sputter(fragment_sputter)
-
     if isinstance(fragment_sputter, FragmentSputterPolar) or isinstance(
         fragment_sputter, FragmentSputterSpherical
     ):
         fragment_sputter = fragment_sputter_to_cartesian(fragment_sputter)
 
-    xs = fragment_sputter.xs.to(dist_units)
-    ys = fragment_sputter.ys.to(dist_units)
-    zs = fragment_sputter.fragment_density.to(sputter_units)
+    if mirrored:
+        fragment_sputter = mirror_fragment_sputter(fragment_sputter)
+
+    xs = fragment_sputter.xs.to(dist_units)  # type: ignore
+    ys = fragment_sputter.ys.to(dist_units)  # type: ignore
+    zs = fragment_sputter.fragment_density.to(sputter_units)  # type: ignore
 
     within_limit = np.sqrt(xs**2 + ys**2) < within_r
 
@@ -276,8 +278,8 @@ def mpl_fragment_sputter_plot(
 
     # highlight the outflow axis, along positive y
     if show_outflow_axis:
-        origin = [0, 0, 0] * dist_units
-        outflow_max = [0, np.max(ys.to_value(dist_units)), 0] * dist_units
+        origin = [0, 0, 0] * dist_units  # type: ignore
+        outflow_max = [0, np.max(ys.to_value(dist_units)), 0] * dist_units  # type: ignore
         ax.plot(origin, outflow_max, color=myblue, lw=2, label="outflow axis")
 
     ax.scatter(xs, ys, zs, c=kwargs.get("color", scalarMap.to_rgba(zs.value)))

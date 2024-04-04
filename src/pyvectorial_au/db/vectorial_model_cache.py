@@ -11,17 +11,11 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 
-# globals - there has to be a better way to do this
-vm_cache_engine: Optional[Engine] = None
-vm_cache_session = None
-
-
 """
 From the sqlalchemy docs:
-When using an Engine with multiple Python processes,
-such as when using os.fork or Python multiprocessing,
-it’s important that the engine is initialized per process.
-See Using Connection Pools with Multiprocessing or os.fork() for details.
+    When using an Engine with multiple Python processes,
+    such as when using os.fork or Python multiprocessing,
+    it’s important that the engine is initialized per process.
 """
 
 
@@ -38,29 +32,35 @@ class VMCached(VMCachedBase):
     vectorial_model_version: Mapped[str] = mapped_column(nullable=False)
 
 
-def initialize_vectorial_model_cache(
-    vectorial_model_cache_dir: pathlib.Path,
-    vectorial_model_cache_filename: pathlib.Path = pathlib.Path("vmcache.sqlite3"),
-) -> None:
-    global vm_cache_engine, vm_cache_session
+def get_vectorial_model_cache_engine(
+    vectorial_model_cache_path: pathlib.Path,
+) -> Engine:
+    """
+    Returns an engine to the db based on the given path
+    """
 
-    if vm_cache_engine is not None or vm_cache_session is not None:
-        return
+    vm_cache_engine = create_engine(
+        f"sqlite:///{vectorial_model_cache_path}", poolclass=NullPool
+    )
 
-    # full_db_path = vectorial_model_cache_dir / pathlib.Path("vmcache.sqlite3")
-    full_db_path = vectorial_model_cache_dir.joinpath(vectorial_model_cache_filename)
-    vm_cache_engine = create_engine(f"sqlite:///{full_db_path}", poolclass=NullPool)
-
-    VMCachedBase.metadata.create_all(bind=vm_cache_engine)
-
-    session_factory = sessionmaker(vm_cache_engine)
-    vm_cache_session = scoped_session(session_factory)
+    return vm_cache_engine
 
 
-def get_vm_cache_db_session() -> Optional[Session]:
-    global vm_cache_engine, vm_cache_session
+def get_vectorial_model_cache_session(
+    vectorial_model_cache_path: pathlib.Path,
+    cache_engine: Optional[Engine] = None,
+) -> Optional[Session]:
+    """
+    Returns a db session based on the given Engine, but if none was given we construct
+    an engine with the given path.
+    If an engine is specified, the path is ignored.
+    """
 
-    if vm_cache_session:
-        return vm_cache_session()
-    else:
-        return None
+    if not cache_engine:
+        cache_engine = get_vectorial_model_cache_engine(
+            vectorial_model_cache_path=vectorial_model_cache_path,
+        )
+
+    session_factory = sessionmaker(cache_engine)
+    cache_session = scoped_session(session_factory)
+    return cache_session()
