@@ -24,7 +24,7 @@ def get_saved_model_from_cache(
     """
 
     hashed_vmc = vmc_to_sha256_digest(vmc=vmc)
-    print(f"Looking up hashed vmc {hashed_vmc} in db ...")
+    # print(f"Looking up hashed vmc {hashed_vmc} in db ...")
     vm_cache_session = get_vectorial_model_cache_session(
         vectorial_model_cache_path=vectorial_model_cache_path
     )
@@ -34,7 +34,7 @@ def get_saved_model_from_cache(
 
     cache_result = vm_cache_session.get(VMCached, hashed_vmc)
     if not cache_result:
-        print(f"Not found in db. [hash {hashed_vmc}]")
+        # print(f"Not found in db. [hash {hashed_vmc}]")
         vm_cache_session.close()
         return None
 
@@ -57,7 +57,7 @@ def save_model_to_cache(
     already exists in the database.  If it does not, add it.
     """
     hashed_vmc = vmc_to_sha256_digest(vmc=evmc.vmc)
-    print(f"Saving model with hashed vmc {hashed_vmc} in db ...")
+    # print(f"Saving model with hashed vmc {hashed_vmc} in db ...")
 
     vm_cache_session = get_vectorial_model_cache_session(
         vectorial_model_cache_path=vectorial_model_cache_path

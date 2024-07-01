@@ -59,6 +59,7 @@ def run_vectorial_model_single(
     model_start_time = time.time()
     model_function = None
 
+    # TODO: rust version is hard-coded here - look for a better way to do this - maybe use the bin path to ask the rust executable with 'rust_vectorial_model --version' - need to add this functionality to rust version
     if isinstance(extra_config, PythonModelExtraConfig):
         vectorial_model_backend = "python"
         vectorial_model_version = impm.version("sbpy")

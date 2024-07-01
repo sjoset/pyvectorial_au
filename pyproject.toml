@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyvectorial_au"
-version = "1.0.6"
+version = "1.0.7"
 description = "Utilities for running, saving, and interfacing with cometary vectorial models, like the one included in sbpy"
 authors = ["Shawn Oset <szo0032@auburn.edu>"]
 license = "MIT"
