@@ -47,14 +47,17 @@ def run_fortran_vectorial_model(
     vmc: VectorialModelConfig, extra_config: FortranModelExtraConfig
 ) -> VectorialModelResult:
     """
-    Given path to fortran binary, runs it by sending it the correct keystrokes
+    Given a valid FortranModelExtraConfig, runs the vectorial model fortran binary it by sending it the correct keystrokes
     """
+
+    # TODO: document that fortran version will transform the input parameters for heliocentric distance, extra_config.r_h
+    # TODO: We should probably fix r_h passed to fortran at 1.0 AU and insist that the user scale the VectorialModelConfig parameters themselves
 
     write_fortran_input_file(vmc, extra_config)
 
     log.info("Running fortran version at %s ...", extra_config.bin_path)
 
-    # my vm.f consumes 14 enters before the calculation
+    # my copy of Festou's vm.f consumes 14 enters before the calculation
     enter_key_string = "\n" * 14
     p1 = subprocess.Popen(["echo", enter_key_string], stdout=subprocess.PIPE)
     p2 = subprocess.run(

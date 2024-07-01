@@ -2,6 +2,19 @@
 This is a library for interfacing with vectorial models of cometary atmospheres, namely the model included in sbpy, but other versions written in fortran and rust are supported also.
 Features include standardized model input and output, database caching of completed models, and parallel running of models.
 
+# Usage
+
+## Exposed Methods and Data Structures
+TODO
+
+### Input
+
+### Output
+
+## Example
+
+# Backends
+
 # Testing
 `pytest`
 

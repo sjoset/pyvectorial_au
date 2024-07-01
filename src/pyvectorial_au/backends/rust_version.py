@@ -90,44 +90,6 @@ def run_rust_vectorial_model(
     return vmr
 
 
-# def run_rust_vectorial_model(
-#     vmc: VectorialModelConfig, extra_config: RustModelExtraConfig
-# ) -> VectorialModelResult:
-#     """
-#     Given path to rust vmodel binary, runs the given model configuration
-#     """
-#     rust_input_filename = pathlib.Path(vmc_to_sha256_digest(vmc=vmc)).with_suffix(
-#         ".yaml"
-#     )
-#     rust_output_filename = pathlib.Path(vmc_to_sha256_digest(vmc=vmc)).with_suffix(
-#         ".txt"
-#     )
-#
-#     log.debug(
-#         "Writing input config file %s to feed rust vectorial model...",
-#         rust_input_filename,
-#     )
-#     write_rust_input_file(vmc, rust_input_filename)
-#
-#     log.info("Running rust version at %s ...", extra_config.bin_path)
-#     p1 = subprocess.run(
-#         args=[
-#             str(extra_config.bin_path),
-#             str(rust_input_filename),
-#             str(rust_output_filename),
-#         ],
-#         stdout=open(os.devnull, "wb"),
-#     )
-#     log.info("rust vmodel run complete, return code %s", p1.returncode)
-#
-#     vmr = vmr_from_rust_output(rust_output_filename, vmc)
-#
-#     interpolate_volume_density(vmr)
-#     column_density_from_abel(vmr)
-#     interpolate_column_density(vmr)
-#     return vmr
-
-
 def get_rust_header(rust_output_filename: pathlib.Path) -> List[str]:
     with open(rust_output_filename, "r") as f:
         header = list(islice(f, 14))
@@ -271,6 +233,7 @@ def write_rust_input_file(
             "Only steady production is supported in the rust version! Running steady production model instead!."
         )
 
+    # TODO: backflow mode radius, might require a re-definition of VectorialModelConfig
     rust_config_dict = {
         "base_q": float(vmc.production.base_q.to_value(1 / u.s)),  # type: ignore
         "p_tau_d": float(vmc.parent.tau_d.to_value(u.s)),  # type: ignore

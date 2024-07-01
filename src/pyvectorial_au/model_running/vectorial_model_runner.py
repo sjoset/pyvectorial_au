@@ -29,6 +29,11 @@ from pyvectorial_au.model_output.vectorial_model_calculation import (
 )
 
 
+def verbose_print(x, verbose: bool) -> None:
+    if verbose:
+        print(x)
+
+
 def run_vectorial_model_single(
     vmc: VectorialModelConfig,
     extra_config: Union[
@@ -94,6 +99,7 @@ def run_vectorial_models(
     ] = PythonModelExtraConfig(print_progress=False),
     parallelism: int = 1,
     vectorial_model_cache_path: Optional[pathlib.Path] = None,
+    verbose: bool = False,
 ) -> List[VMCalculation]:
     """
     Take a list of model configs and run them in parallel, {parallelism} at a time.
@@ -109,13 +115,15 @@ def run_vectorial_models(
             extra_config=extra_config,
             parallelism=parallelism,
             vectorial_model_cache_path=vectorial_model_cache_path,
+            verbose=verbose,
         )
-    print("Caching done, running...")
+
+    verbose_print("Caching done, running...", verbose=verbose)
 
     # The fortran version uses fixed file names for input and output, so running multiple in parallel
     # would clobber each other's input and output files
     if isinstance(extra_config, FortranModelExtraConfig):
-        print("Forcing no parallelism for fortran version!")
+        verbose_print("Forcing no parallelism for fortran version!", verbose=verbose)
         parallelism = 1
 
     pool_start_time = time.time()
@@ -130,7 +138,10 @@ def run_vectorial_models(
         vmcalc_list = vm_pool.map(run_vmodel_timed_mappable_func, vmc_list)
 
     pool_end_time = time.time()
-    print(f"Total results assembly time: {pool_end_time - pool_start_time} seconds")
+    verbose_print(
+        f"Total results assembly time: {pool_end_time - pool_start_time} seconds",
+        verbose=verbose,
+    )
 
     return [VMCalculation.from_encoded(x) for x in vmcalc_list]
 
@@ -142,6 +153,7 @@ def run_unique_models_only(
         PythonModelExtraConfig, FortranModelExtraConfig, RustModelExtraConfig
     ] = PythonModelExtraConfig(print_progress=False),
     parallelism: int = 1,
+    verbose: bool = False,
 ) -> None:
     """
     This compares the given vmc_list hashes and runs only the models which are different,
@@ -153,7 +165,7 @@ def run_unique_models_only(
     # would clobber each other's input and output files without some extra temporary-directory work
     # that isn't really worth it
     if isinstance(extra_config, FortranModelExtraConfig):
-        print("Forcing no parallelism for fortran version!")
+        verbose_print("Forcing no parallelism for fortran version!", verbose=verbose)
         parallelism = 1
 
     vmc_hashes = [vmc_to_sha256_digest(x) for x in vmc_list]
@@ -161,7 +173,10 @@ def run_unique_models_only(
     reduced_vmc_set = [
         vmc_list[vmc_hashes.index(unique_hash)] for unique_hash in unique_vmc_hashes
     ]
-    print(f"Number of unique models to be run and cached: {len(reduced_vmc_set)}")
+    verbose_print(
+        f"Number of unique models to be run and cached: {len(reduced_vmc_set)}",
+        verbose=verbose,
+    )
 
     pool_start_time = time.time()
 
@@ -176,4 +191,7 @@ def run_unique_models_only(
         _ = vm_pool.map(run_vmodel_timed_mappable_func, reduced_vmc_set)
 
     pool_end_time = time.time()
-    print(f"Total run time on unique models: {pool_end_time - pool_start_time} seconds")
+    verbose_print(
+        f"Total run time on unique models: {pool_end_time - pool_start_time} seconds",
+        verbose=verbose,
+    )
