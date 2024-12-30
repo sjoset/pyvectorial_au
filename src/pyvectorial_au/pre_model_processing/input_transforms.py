@@ -36,9 +36,9 @@ def _apply_cochran_schleicher_93(
     vmc_orig: VectorialModelConfig,
     r_h: Quantity,
 ) -> VectorialModelConfig:
-    rh = r_h.to_value(u.AU)
-    rhsquared = rh**2  # type: ignore
-    sqrh = np.sqrt(rh)
+    rh_au: float = r_h.to_value(u.AU)  # type: ignore
+    rhsquared = rh_au**2
+    sqrh = np.sqrt(rh_au)
 
     new_parent = ParentMolecule(
         v_outflow_kms=0.85 / sqrh,  # type: ignore
@@ -56,7 +56,7 @@ def _apply_cochran_schleicher_93(
     )
 
     log.debug("Applying transform cochran_schleicher_93...")
-    log.debug("Effect of transform at %s AU:", rh)
+    log.debug("Effect of transform at %s AU:", rh_au)
     log.debug(
         "Parent outflow: %s --> %s", vmc_orig.parent.v_outflow, vmc.parent.v_outflow
     )

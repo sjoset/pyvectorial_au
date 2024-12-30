@@ -2,7 +2,11 @@ from dataclasses import dataclass
 import numpy as np
 
 
-# Dataclasses for the two-dimensional fragment sputter information obtained from the model
+"""
+Dataclasses for the two-dimensional fragment sputter information obtained from the model
+"""
+
+
 @dataclass
 class FragmentSputterSpherical:
     """

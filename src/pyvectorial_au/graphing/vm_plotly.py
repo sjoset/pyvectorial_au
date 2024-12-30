@@ -70,7 +70,7 @@ def plotly_volume_density_interpolation_plot(
 
     vdens_interp_plot = go.Scatter(
         x=vmr.volume_density_grid.to_value(dist_units),  # type: ignore
-        y=ys.to_value(vdens_units),
+        y=ys.to_value(vdens_units),  # type: ignore
         **kwargs
     )
     return vdens_interp_plot
@@ -96,7 +96,7 @@ def plotly_column_density_interpolation_plot(
 
     cdens_interp_plot = go.Scatter(
         x=vmr.column_density_grid.to_value(dist_units),  # type: ignore
-        y=ys.to_value(cdens_units),
+        y=ys.to_value(cdens_units),  # type: ignore
         **kwargs
     )
     return cdens_interp_plot
@@ -112,12 +112,11 @@ def plotly_column_density_plot_3d(
     cdens_units=1 / u.m**2,  # type: ignore
     **kwargs
 ) -> go.Surface:
-    xmin_m, ymin_m = np.subtract(
-        center.to_value(u.m), (width.to_value(u.m) / 2, height.to_value(u.m) / 2)
+    xmin_m, ymin_m = (
+        center.to_value(u.m)[0] - width.to_value(u.m) / 2,  # type: ignore
+        center.to_value(u.m)[1] - height.to_value(u.m) / 2,  # type: ignore
     )
-    xmax_m, ymax_m = np.add(
-        (xmin_m, ymin_m), (width.to_value(u.m), height.to_value(u.m))
-    )
+    xmax_m, ymax_m = (xmin_m + width.to_value(u.m), ymin_m + height.to_value(u.m))  # type: ignore
     xs_m = np.linspace(xmin_m, xmax_m, num=divisions)
     ys_m = np.linspace(ymin_m, ymax_m, num=divisions)
 
@@ -131,7 +130,7 @@ def plotly_column_density_plot_3d(
     cdens_plot = go.Surface(
         x=x_mesh.to_value(dist_units),
         y=y_mesh.to_value(dist_units),
-        z=z_mesh.to_value(cdens_units),
+        z=z_mesh.to_value(cdens_units),  # type: ignore
         **kwargs
     )
     return cdens_plot

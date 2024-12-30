@@ -30,8 +30,8 @@ def fragment_sputter_to_polar(fsp: FragmentSputterSpherical) -> FragmentSputterP
 
 
 def mirror_fragment_sputter(
-    fsp: Union[FragmentSputterPolar, FragmentSputterCartesian]
-) -> Union[FragmentSputterPolar, FragmentSputterCartesian]:
+    fsp: FragmentSputterPolar | FragmentSputterCartesian,
+) -> FragmentSputterPolar | FragmentSputterCartesian:
     """
     The sputter in (r, theta, density) in spherical coordinate format occupies the positive x-axis only due to the azimuthal symmetry of the problem.
     When we convert that to other coordinate systems, we might want to include the negative x-axis by mirroring the fragment sputter around x = 0,

@@ -34,7 +34,7 @@ from pyvectorial_au.model_output.vectorial_model_result import (
 
 
 """
-    For interfacing with the rust version of the vectorial model
+    For interfacing with the rust version of the vectorial model, published at https://github.com/sjoset/rust_vectorial_model
 """
 
 
@@ -137,7 +137,7 @@ def vmc_from_rust_output(rust_output_filename: pathlib.Path) -> VectorialModelCo
             tau_d_s=p_tau_d.to_value(u.s),
             tau_T_s=p_tau_T.to_value(u.s),
             v_outflow_kms=v_outflow.to_value(u.km / u.s),
-            sigma_cm_sq=sigma.to_value(u.cm**2),
+            sigma_cm_sq=sigma.to_value(u.cm**2),  # type: ignore
         ),
         fragment=FragmentMolecule(
             v_photo_kms=v_photo.to_value(u.km / u.s), tau_T_s=f_tau_T.to_value(u.s)

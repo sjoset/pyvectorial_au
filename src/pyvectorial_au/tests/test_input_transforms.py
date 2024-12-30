@@ -42,7 +42,7 @@ def testing_vmc() -> VectorialModelConfig:
 
 def test_fortran_festou_apply(testing_vmc):
     r_h = 2.0 * u.AU  # type: ignore
-    r_h_au = r_h.to_value(u.AU)
+    r_h_au: float = r_h.to_value(u.AU)  # type: ignore
     rhsq = r_h_au**2
 
     xfrmed_vmc = apply_input_transform(
@@ -66,7 +66,7 @@ def test_fortran_festou_apply(testing_vmc):
 
 def test_cochran_schleicher_93_apply(testing_vmc):
     r_h = 2.0 * u.AU  # type: ignore
-    r_h_au = r_h.to_value(u.AU)
+    r_h_au: float = r_h.to_value(u.AU)  # type: ignore
     rhsq = r_h_au**2
     sqrh = np.sqrt(r_h_au)
 

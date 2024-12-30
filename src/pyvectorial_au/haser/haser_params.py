@@ -44,5 +44,5 @@ def haser_from_vectorial_cd1980(vmc: VectorialModelConfig) -> HaserParams:
 
     # TODO: does the paper give a formula for the production, or should we use the same production as went
     # into the vectorial model?  If we fit this new haser and find the best Q, does it match the vectorial?
-    # We return None for the production because ... ?
+    # We return None for the production because we're only interested in parameter transformation
     return HaserParams(q=None, v_outflow=v_d_h, gamma_p=gamma_p_h, gamma_d=gamma_d_h)

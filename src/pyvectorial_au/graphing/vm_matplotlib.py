@@ -136,12 +136,11 @@ def mpl_column_density_plot_3d(
     cdens_units=1 / u.m**2,  # type: ignore
     **kwargs
 ) -> None:
-    xmin_m, ymin_m = np.subtract(
-        center.to_value(u.m), (width.to_value(u.m) / 2, height.to_value(u.m) / 2)
+    xmin_m, ymin_m = (
+        center.to_value(u.m)[0] - width.to_value(u.m) / 2,  # type: ignore
+        center.to_value(u.m)[1] - height.to_value(u.m) / 2,  # type: ignore
     )
-    xmax_m, ymax_m = np.add(
-        (xmin_m, ymin_m), (width.to_value(u.m), height.to_value(u.m))
-    )
+    xmax_m, ymax_m = (xmin_m + width.to_value(u.m), ymin_m + height.to_value(u.m))  # type: ignore
     xs_m = np.linspace(xmin_m, xmax_m, num=divisions)
     ys_m = np.linspace(ymin_m, ymax_m, num=divisions)
 
@@ -216,7 +215,7 @@ def mpl_fragment_sputter_contour_plot(
     x_mesh, y_mesh = np.meshgrid(np.unique(xs), np.unique(ys))
     print("Interpolating surface...")
     fs_rbf = scipy.interpolate.Rbf(xs, ys, zs, function="cubic")
-    print("Computing interploted values...")
+    print("Computing interpolated values...")
     frag_mesh = fs_rbf(x_mesh, y_mesh)
     print("Graphing..")
 
