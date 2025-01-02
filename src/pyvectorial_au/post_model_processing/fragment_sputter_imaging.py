@@ -17,7 +17,17 @@ def fragment_sputter_volume_density_to_image(
     view_within_radius: u.Quantity,
     image_size: int,
     dist_units: u.Quantity = u.km,  # type: ignore
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Returns a image of the provided fragment sputter, along with the x and y mesh grid
+
+    view_within_radius: visualize the fragment sputter around the comet for all r < view_within_radius
+    image_size: pixel size of the generated image (width and length will be equal to image_size)
+    dist_units: units for the spatial grid that corresponds to each pixel
+
+    returns:
+    (image, grid_x, grid_y)
+    """
 
     fs: FragmentSputterPolar = fragment_sputter_to_polar(fragment_sputter)
     fs: FragmentSputterPolar = mirror_fragment_sputter(fs)  # type: ignore
@@ -46,4 +56,4 @@ def fragment_sputter_volume_density_to_image(
         fill_value=0,
     )
 
-    return fs_img
+    return fs_img, grid_x, grid_y
